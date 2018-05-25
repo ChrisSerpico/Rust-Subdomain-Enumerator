@@ -4,4 +4,7 @@ version = "0.1.0"
 authors = ["Chris Serpico <christopherserpico2018@u.northwestern.edu>"]
 
 [dependencies]
+reqwest = "0.8.5"
+serde = "1.0"
+serde_derive = "1.0"
 trust-dns-resolver = "0.9.0"
