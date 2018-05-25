@@ -4,3 +4,4 @@ version = "0.1.0"
 authors = ["Chris Serpico <christopherserpico2018@u.northwestern.edu>"]
 
 [dependencies]
+trust-dns-resolver = "0.9.0"
