@@ -12,27 +12,35 @@ ASSUMPTIONS:
 
 */
 
-extern crate trust_dns_resolver;
+extern crate dns_lookup;
 
 use std::collections::HashSet;
 use std::io::{BufReader, BufRead, Write};
 use std::fs::{File, OpenOptions};
-use std::net::*;
-use self::trust_dns_resolver::{Resolver, config::*};
+use std::net::IpAddr;
+use self::dns_lookup::lookup_host;
 
 // Takes a string representing the domain to query,
 // and a string representing the pathname to library
 // Appends each subdomain name from the library to the domain name
 // and attempts to get an IP address by querying the DNS server
-// If a valid IP address is obtained, writes the subdomain name and IP address to file
+// If a valid IP address is obtained, write it to the designated output file
 pub fn enumerate(domain: &String, library: &String)  {
-    let lib = File::open(library).expect("Error: opening library"); // TODO make this not panic
-    let lib_buf = BufReader::new(lib);
+    let lib_buf;
+    match File::open(library) {
+        Ok(lib) => {
+            lib_buf = BufReader::new(lib);
+        }
+        Err(_e) => {
+            eprintln!("Error opening library");
+            return
+        }
+    }
 
     let mut output = OpenOptions::new()
         .create(true)
         .append(true)
-        .open(domain+"_subdomains_list")
+        .open(format!("{}_subdomains_list.txt", domain))
         .expect("Error: opening output file");
 
     // Used to track wildcard records
@@ -42,52 +50,61 @@ pub fn enumerate(domain: &String, library: &String)  {
     // Begin enumeration
     // This is currently sequential
     let mut subdomains = lib_buf.lines();
-    while let Some(subdomain) = subdomains.next().expect("Error: reading from library") {
+    while let Some(Ok(subdomain)) = subdomains.next() {
         let name = subdomain + domain;
-        if let Some(result) = query(name, &mut wc) {
-            output.write_all(result.as_bytes());
+        if let Some(vec) = query(&name, &mut wc) {
+            if !vec.is_empty() {
+                // Write to output, or something
+            }
         }
     }
 }
 
-
 // Takes a string representing the domain name,
 // and a empty hash set for storing wildcard addresses
-// Checks whether the domain name has wildcard DNS records;
-// if wildcard records are in use, store their addresses in the hash set
+// Checks whether the domain name has a wildcard DNS record;
+// if a wildcard record is in use, store its addresses in the hash set
 fn get_wildcards(domain : &String, wc : &mut HashSet<IpAddr>) {
     // Make up a weird name
-    let name = "asdfjkl;1423" + domain;
+    let name = format!("asdfjkl;1423.{}", domain);
 
-    let mut resolver = Resolver::new(ResolverConfig::default(), ResolverOpts::default()).unwrap();
-    let mut response = resolver.lookup_ip(name).unwrap().iter();
-
-    while let Some(addr) = response.next().expect("Error: iterating through resolver") {
-        wc.insert(addr);
+    match lookup_host(name.as_str()) {
+        Ok(vec) => {
+            while let Some(addr) = vec.iter().next() {
+                wc.insert(*addr);
+            }
+        }
+        Err(_e) => {
+            eprintln!("Warning: failed to query wildcard record for host {}", domain);
+        }
     }
+
+    println!("Discovered wildcard record for host {} with {} IP addresses", domain, wc.len());
 }
 
 // Takes a string representing the name to query,
 // and a hash set containing wildcard addresses
 // If the name can be resolved and is not a wildcard,
-// returns query results as string
+// returns query results as a vector of IP addresses
 // Returns none otherwise
-fn query(name : String, wildcards : &mut HashSet<IpAddr>) -> Option<String> {
-    let mut resolver = Resolver::new(ResolverConfig::default(), ResolverOpts::default()).unwrap();
-    let mut response = resolver.lookup_ip(name.as_str()).unwrap().iter();
+fn query(name : &String, wc : &mut HashSet<IpAddr>) -> Option<Vec<IpAddr>> {
+    let mut addresses : Vec<IpAddr> = Vec::new();
 
-    if response.count() != 0 {
-        let mut result = String::from("subdomain name: {}\n IP address:\n");
-        while let Some(addr) = response.next.expect("Error: iterating through resolver") {
-            if !wildcards.contains(addr) {
-                result.push_str(format!("{}", addr).as_str());
+    match lookup_host(name) {
+        Ok(vec) => {
+            while let Some(addr) = vec.iter().next() {
+                if !wc.contains(addr) {
+                    addresses.push(*addr)
+                }
             }
         }
-        return Some(result)
+        Err(_e) => {
+            return None
+        }
     }
-    else {
-        return None
-    }
+
+    println!("Discovered {} IP addresses for subdomain {}", addresses.len(), name);
+    Some(addresses)
 }
 
 // TODO write tests
