@@ -15,17 +15,19 @@ ASSUMPTIONS:
 extern crate dns_lookup;
 
 use std::collections::HashSet;
-use std::io::{BufReader, BufRead, Write};
-use std::fs::{File, OpenOptions};
+use std::io::{BufReader, BufRead};
+use std::fs::File;
 use std::net::IpAddr;
 use self::dns_lookup::lookup_host;
 
 // Takes a string representing the domain to query,
-// and a string representing the pathname to library
+// a string representing the pathname to library,
+// and an optional string representing the top-level domain name;
+// the top-level domain name is only given for recursive queries
 // Appends each subdomain name from the library to the domain name
 // and attempts to get an IP address by querying the DNS server
-// If a valid IP address is obtained, write it to the designated output file
-pub fn enumerate(domain: &String, library: &String)  {
+// If a valid IP address is obtained it is stored in the appropriate buffer
+pub fn enumerate(domain: &String, library: &String, superdomain : Option<&String>)  {
     let lib_buf;
     match File::open(library) {
         Ok(lib) => {
@@ -37,24 +39,28 @@ pub fn enumerate(domain: &String, library: &String)  {
         }
     }
 
-    let mut output = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(format!("{}_subdomains_list.txt", domain))
-        .expect("Error: opening output file");
-
     // Used to track wildcard records
     let mut wc : HashSet<IpAddr> = HashSet::new();
     get_wildcards(domain, &mut wc);
 
     // Begin enumeration
-    // This is currently sequential
+    // Should spawn a thread
     let mut subdomains = lib_buf.lines();
     while let Some(Ok(subdomain)) = subdomains.next() {
         let name = subdomain + domain;
         if let Some(vec) = query(&name, &mut wc) {
             if !vec.is_empty() {
-                // Write to output, or something
+                if let Some(sd) = superdomain {
+                    // lock buffer
+                    // if domain exists, we do nothing
+                }
+                else {
+
+                }
+
+                // Recurse on valid subdomain
+                // Should spawn a thread
+                enumerate(&name, library, Some(domain));
             }
         }
     }
@@ -66,7 +72,7 @@ pub fn enumerate(domain: &String, library: &String)  {
 // if a wildcard record is in use, store its addresses in the hash set
 fn get_wildcards(domain : &String, wc : &mut HashSet<IpAddr>) {
     // Make up a weird name
-    let name = format!("asdfjkl;1423.{}", domain);
+    let name = format!("asdfjklv1423.{}", domain);
 
     match lookup_host(name.as_str()) {
         Ok(vec) => {
