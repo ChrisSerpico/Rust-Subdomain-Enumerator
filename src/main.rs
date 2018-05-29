@@ -1,32 +1,44 @@
 extern crate subdomain_enumerator;
+extern crate clap;
+use clap::{Arg, App};
 
 // used to read arguments passed on command line
-use std::env; 
+use std::thread;
 use subdomain_enumerator::enumerator; 
-use subdomain_enumerator::library_enumerator;
+use std::collections::HashMap;
+// use subdomain_enumerator::library_enumerator;
 
-use std::process;
+
 fn main() {
     // read arguments from command line 
-    let args: Vec<String> = env::args().collect(); 
+    let matches = App::new("Concurrent Subdomain Enumerator")
+                          .version("1.0")
+                          .about("Queries VirusTotal for subdomains and performs dictionary enumeration.")
+                          .arg(Arg::with_name("domains")
+                               .short("d")
+                               .required(true)
+                               .multiple(true)
+                               .help("Specifies the domains to enumerate."))
+                          .arg(Arg::with_name("limit")
+                               .short("l")
+                               .help("Specifies the number of subdomains to query for each domain."))
+                          .arg(Arg::with_name("wordlist")
+                               .short("w")
+                               .help("Specifies the wordlist to use for dictionary enumeration."))
+                          .get_matches();
+    let mut subdomains = HashMap::new();
+    let domains: Vec<_> = matches.values_of("domains").unwrap().collect();
+    let limit_arg = matches.value_of("limit").unwrap_or("10");
+    let limit: usize = limit_arg.parse().unwrap();
 
-    // the first argument is necessary, and gives the domain we want to find subdomains of 
-    if args.len() < 2 {
-        println!("At least one argument specifying the domain to enumerate is required."); 
-        process::exit(1); 
+    for i in 0..domains.len(){
+        thread::spawn(move || {
+            enumerator::query_database(&domains[i].to_string(), &mut subdomains, limit);
+        });
     }
-    else if args.len() < 3 {
-        // Case where we don't use dictionary enumeration 
-        println!("Enumeration will be performed using only database querying."); 
-        let domain = &args[1];
-        enumerator::enumerate(&domain);
-    }
-    else {
-        // Case where we do use dictionary enumeration 
-        println!("Enumeration will be performed using both database querying and library enumeration."); 
-        let domain = &args[1]; 
-        let dictionary = &args[2];
-        enumerator::enumerate(domain);
-        library_enumerator::enumerate(domain, dictionary);
+    
+    if matches.is_present("wordlist") {
+        let dictionary = matches.value_of("wordlist");
+        // library_enumerator::enumerate(domains, dictionary);
     }
 }
