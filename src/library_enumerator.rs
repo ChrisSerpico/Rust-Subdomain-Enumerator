@@ -14,10 +14,13 @@ ASSUMPTIONS:
 
 extern crate dns_lookup;
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::io::{BufReader, BufRead};
 use std::fs::File;
+use std::mem;
 use std::net::IpAddr;
+use std::sync::{Arc, Mutex};
+use std::thread;
 use self::dns_lookup::lookup_host;
 
 // Takes a string representing the domain to query,
@@ -25,44 +28,45 @@ use self::dns_lookup::lookup_host;
 // and an optional string representing the top-level domain name;
 // the top-level domain name is only given for recursive queries
 // Appends each subdomain name from the library to the domain name
-// and attempts to get an IP address by querying the DNS server
-// If a valid IP address is obtained it is stored in the appropriate buffer
-pub fn enumerate(domain: &String, library: &String, superdomain : Option<&String>)  {
+// and attempts resolve the name by querying the DNS server
+// If the name is resolvable, it is added as a valid subdomain
+pub fn enumerate(domain: String,
+                 library: String,
+                 store : Arc<Mutex<HashMap<String, HashSet<String>>>>,
+                 superdomain : Option<String>)  {
     let lib_buf;
-    match File::open(library) {
+    match File::open(&library) {
         Ok(lib) => {
             lib_buf = BufReader::new(lib);
         }
         Err(_e) => {
-            eprintln!("Error opening library");
+            eprintln!("Error opening library, library enumerator exiting");
             return
         }
     }
 
     // Used to track wildcard records
-    let mut wc : HashSet<IpAddr> = HashSet::new();
-    get_wildcards(domain, &mut wc);
+    let mut wildcards : HashSet<IpAddr> = HashSet::new();
+    get_wildcards(&domain, &mut wildcards);
+    let wc = Arc::new(wildcards);
 
     // Begin enumeration
-    // Should spawn a thread
     let mut subdomains = lib_buf.lines();
     while let Some(Ok(subdomain)) = subdomains.next() {
-        let name = subdomain + domain;
-        if let Some(vec) = query(&name, &mut wc) {
-            if !vec.is_empty() {
-                if let Some(sd) = superdomain {
-                    // lock buffer
-                    // if domain exists, we do nothing
-                }
-                else {
-
-                }
-
-                // Recurse on valid subdomain
-                // Should spawn a thread
-                enumerate(&name, library, Some(domain));
-            }
+        let arg1 = format!("{}.{}", subdomain, domain);
+        let arg2 = library.clone();
+        let arg3 = wc.clone();
+        let arg4 = store.clone();
+        let arg5;
+        if let Some(sd) = superdomain.clone() {
+            arg5 = sd;
+        } else {
+            arg5 = domain.clone();
         }
+
+        thread::spawn(move || {
+            enumerate_branch(arg1, arg2, arg3, arg4, arg5);
+        });
     }
 }
 
@@ -80,37 +84,57 @@ fn get_wildcards(domain : &String, wc : &mut HashSet<IpAddr>) {
                 wc.insert(*addr);
             }
         }
-        Err(_e) => {
-            eprintln!("Warning: failed to query wildcard record for host {}", domain);
+        Err(error) => {
+            eprintln!("get_wildcards: {}", error);
         }
     }
 
     println!("Discovered wildcard record for host {} with {} IP addresses", domain, wc.len());
 }
 
+fn enumerate_branch(subdomain : String,
+                    library: String,
+                    wc : Arc<HashSet<IpAddr>>,
+                    store : Arc<Mutex<HashMap<String, HashSet<String>>>>,
+                    domain : String) {
+    if query(&subdomain, wc.as_ref()) {
+        let mut map = store.lock().unwrap();
+
+        if !map.contains_key(domain.as_str()) {
+            map.insert(domain.clone(), HashSet::new());
+        }
+        map.get_mut(&domain).unwrap().insert(subdomain.clone());
+
+        mem::drop(map);
+
+        // Recurse on valid subdomain
+        let new = store.clone();
+        thread::spawn(move || {
+            enumerate(subdomain, library, new, Some(domain));
+        });
+    }
+}
+
 // Takes a string representing the name to query,
 // and a hash set containing wildcard addresses
-// If the name can be resolved and is not a wildcard,
-// returns query results as a vector of IP addresses
-// Returns none otherwise
-fn query(name : &String, wc : &mut HashSet<IpAddr>) -> Option<Vec<IpAddr>> {
-    let mut addresses : Vec<IpAddr> = Vec::new();
-
+// If the name can be resolved and is not a wildcard, return true
+// Otherwise return false
+fn query(name : &String, wc : &HashSet<IpAddr>) -> bool {
     match lookup_host(name) {
         Ok(vec) => {
             while let Some(addr) = vec.iter().next() {
                 if !wc.contains(addr) {
-                    addresses.push(*addr)
+                    return true
                 }
             }
         }
-        Err(_e) => {
-            return None
+        Err(error) => {
+            eprintln!("query: {}", error);
+            return false
         }
     }
 
-    println!("Discovered {} IP addresses for subdomain {}", addresses.len(), name);
-    Some(addresses)
+    return false
 }
 
 // TODO write tests
