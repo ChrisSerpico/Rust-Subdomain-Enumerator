@@ -33,16 +33,16 @@ fn main() {
     let limit_arg = matches.value_of("limit").unwrap_or("10");
     let limit: usize = limit_arg.parse().unwrap();
 
-    /*
-    for i in 0..domains.len(){
-        let domain = domains[i].to_string();
-        let lock = subdomains.clone();
-        let lim = limit.clone();
-        thread::spawn(move || {
-            enumerator::query_database(&domain, lock, lim);
-        });
-    }
-    */
+    
+    // for i in 0..domains.len(){
+    //     let domain = domains[i].to_string();
+    //     let lock = subdomains.clone();
+        
+    //     thread::spawn(move || {
+    //         enumerator::query_database(&domain, lock, lim);
+    //     });
+    // }
+    
 
     // concurrently begin library enumeration
     if matches.is_present("wordlist") {
@@ -52,7 +52,9 @@ fn main() {
             let domain = domains[i].to_string();
             let library = dictionary.to_string();
             let store = subdomains.clone();
+            let lim = limit.clone();
             thread::spawn(move || {
+                enumerator::query_database(domain.clone(), store.clone(), lim);
                 library_enumerator::enumerate(domain, library, store, None);
             });
         }

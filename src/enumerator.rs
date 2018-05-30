@@ -2,6 +2,7 @@
 
 extern crate reqwest;
 use std::collections::{HashSet, HashMap};
+use std::sync::{Arc, Mutex};
 
 #[derive(Deserialize, Debug)]
 struct Resp {
@@ -14,13 +15,18 @@ struct Subdomain {
 }
 
 // takes a domain name as a string and returns a vector of subdomains as strings 
-pub fn query_database(domain: &String, results: &mut HashMap<String, HashSet<String>>, limit: usize){
-    let mut current_domain = HashSet::new();
+pub fn query_database(domain: String, store: Arc<Mutex<HashMap<String, HashSet<String>>>>, limit: usize){
+    let mut map = store.lock().unwrap();
+
+    if !map.contains_key(domain.as_str()) {
+        map.insert(domain.clone(), HashSet::new());
+    }
+
     let url = format!("https://www.virustotal.com/ui/domains/{}/subdomains?limit={}", domain, limit);
     let client = reqwest::Client::new();
     let virustotal: Resp = client.get(&url).send().unwrap().json().unwrap();
     for subdomain in virustotal.data.iter(){
-        current_domain.insert(subdomain.id.clone());
+        map.get_mut(&domain).unwrap().insert(subdomain.id.clone());
     }
-    results.insert(domain.to_string(), current_domain);
+    
 }
