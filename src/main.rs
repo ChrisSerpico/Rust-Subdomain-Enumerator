@@ -59,4 +59,14 @@ fn main() {
             });
         }
     }
+    else{
+        for i in 0..domains.len(){
+            let domain = domains[i].to_string();
+            let store = subdomains.clone();
+            let lim = limit.clone();
+            thread::spawn(move || {
+                enumerator::query_database(domain.clone(), store.clone(), lim);
+            });
+        }  
+    }
 }
