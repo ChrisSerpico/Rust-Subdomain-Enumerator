@@ -14,7 +14,7 @@ ASSUMPTIONS:
 
 extern crate dns_lookup;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufReader, BufRead};
 use std::mem;
@@ -25,17 +25,12 @@ use self::dns_lookup::lookup_host;
 
 // Takes a string representing the domain to query,
 // a string representing the pathname to library,
-// a hash map holding domain-subdomains pairs,
-// and an optional string representing the top-level domain name;
-// the top-level domain name is used for recursive queries
+// and a hash set for holding discovered subdomains
 // Appends each subdomain prefix from the library to the domain name
 // and passes the concatenated name to resolvers
 // If the name is resolvable, it is added as a valid subdomain
 // and recursively enumerated on
-pub fn enumerate(domain: String,
-                 library: String,
-                 store : Arc<Mutex<HashMap<String, HashSet<String>>>>,
-                 superdomain : Option<String>)  {
+pub fn enumerate(domain: String, library: String, store : Arc<Mutex<HashSet<String>>>)  {
     let lib_buf;
     match File::open(&library) {
         Ok(lib) => {
@@ -59,15 +54,9 @@ pub fn enumerate(domain: String,
         let new_lib = library.clone();
         let new_wc = wc.clone();
         let new_store = store.clone();
-        let top;
-        if let Some(sd) = superdomain.clone() {
-            top = sd;
-        } else {
-            top = domain.clone();
-        }
 
         thread::spawn(move || {
-            try_subdomain(subdomain, new_lib, new_wc, new_store, top);
+            try_subdomain(subdomain, new_lib, new_wc, new_store);
         });
     }
 }
@@ -97,29 +86,22 @@ fn get_wildcards(domain : &String, wc : &mut HashSet<IpAddr>) {
 // Takes a string representing the subdomain to try,
 // a string representing the path to the library,
 // a hash set containing wildcard IP addresses,
-// a hash map holding domain-subdomains pairs,
-// and a string indicating the top-level domain of the current subdomain
+// and a hash set for holding discovered subdomains
 // Attempts to resolve subdomain name by querying DNS
-// If successful add subdomain name to the hash map
+// If successful add subdomain name to the discovered hash set
 fn try_subdomain(subdomain : String,
                  library: String,
                  wc : Arc<HashSet<IpAddr>>,
-                 store : Arc<Mutex<HashMap<String, HashSet<String>>>>,
-                 domain : String) {
+                 store : Arc<Mutex<HashSet<String>>>) {
     if query(&subdomain, wc.as_ref()) {
-        let mut map = store.lock().unwrap();
-
-        if !map.contains_key(domain.as_str()) {
-            map.insert(domain.clone(), HashSet::new());
-        }
-        map.get_mut(&domain).unwrap().insert(subdomain.clone());
-
-        mem::drop(map);
+        let mut found = store.lock().unwrap();
+        found.insert(subdomain.clone());
+        mem::drop(found);
 
         // Recurse on valid subdomain
         let new = store.clone();
         thread::spawn(move || {
-            enumerate(subdomain, library, new, Some(domain));
+            enumerate(subdomain, library, new);
         });
     }
 }

@@ -4,7 +4,7 @@ extern crate clap;
 use clap::{Arg, App};
 // used to read arguments passed on command line
 
-use std::collections::HashMap;
+use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use subdomain_enumerator::enumerator;
@@ -29,40 +29,28 @@ fn main() {
                           .get_matches();
 
     let domains: Vec<_> = matches.values_of("domains").unwrap().collect();
-    let subdomains = Arc::new(Mutex::new(HashMap::new()));
+    let subdomains : Vec<Arc<Mutex<HashSet<String>>>>  = vec![Arc::new(Mutex::new(HashSet::new())); domains.len()];
     let limit_arg = matches.value_of("limit").unwrap_or("10");
     let limit: usize = limit_arg.parse().unwrap();
 
-    
-    // for i in 0..domains.len(){
-    //     let domain = domains[i].to_string();
-    //     let lock = subdomains.clone();
-        
-    //     thread::spawn(move || {
-    //         enumerator::query_database(&domain, lock, lim);
-    //     });
-    // }
-    
-
-    // concurrently begin library enumeration
     if matches.is_present("wordlist") {
         let dictionary = matches.value_of("wordlist").unwrap();
 
-        for i in 0..domains.len(){
+        for i in 0..domains.len() {
             let domain = domains[i].to_string();
             let library = dictionary.to_string();
-            let store = subdomains.clone();
+            let store = subdomains[i].clone();
             let lim = limit.clone();
             thread::spawn(move || {
                 enumerator::query_database(domain.clone(), store.clone(), lim);
-                library_enumerator::enumerate(domain, library, store, None);
+                library_enumerator::enumerate(domain, library, store);
             });
         }
     }
-    else{
-        for i in 0..domains.len(){
+    else {
+        for i in 0..domains.len() {
             let domain = domains[i].to_string();
-            let store = subdomains.clone();
+            let store = subdomains[i].clone();
             let lim = limit.clone();
             thread::spawn(move || {
                 enumerator::query_database(domain.clone(), store.clone(), lim);
