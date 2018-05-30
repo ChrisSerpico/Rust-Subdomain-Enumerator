@@ -3,20 +3,20 @@
 Vickie Li, Alex Lu Wang, Chris Serpico
 
 Contains code for a subdomain enumerator that finds subdomains
-by trying subdomains from a library of common subdomains.
+by trying subdomains generated with a library of common words.
 
 ASSUMPTIONS:
-    1. The domain name is in the form domain-name.com;
-    something like www.domain-name.com will not work
-    2. The library file contains one subdomain name per line
+    1. The domain name is in the form "domain-name.com",
+    so something like "www.domain-name.com" will not work
+    2. The library file contains one word per line
 
 */
 
 extern crate dns_lookup;
 
 use std::collections::{HashMap, HashSet};
-use std::io::{BufReader, BufRead};
 use std::fs::File;
+use std::io::{BufReader, BufRead};
 use std::mem;
 use std::net::IpAddr;
 use std::sync::{Arc, Mutex};
@@ -25,11 +25,13 @@ use self::dns_lookup::lookup_host;
 
 // Takes a string representing the domain to query,
 // a string representing the pathname to library,
+// a hash map holding domain-subdomains pairs,
 // and an optional string representing the top-level domain name;
-// the top-level domain name is only given for recursive queries
-// Appends each subdomain name from the library to the domain name
-// and attempts resolve the name by querying the DNS server
+// the top-level domain name is used for recursive queries
+// Appends each subdomain prefix from the library to the domain name
+// and passes the concatenated name to resolvers
 // If the name is resolvable, it is added as a valid subdomain
+// and recursively enumerated on
 pub fn enumerate(domain: String,
                  library: String,
                  store : Arc<Mutex<HashMap<String, HashSet<String>>>>,
@@ -39,8 +41,8 @@ pub fn enumerate(domain: String,
         Ok(lib) => {
             lib_buf = BufReader::new(lib);
         }
-        Err(_e) => {
-            eprintln!("Error opening library, library enumerator exiting");
+        Err(error) => {
+            eprintln!("enumerate: {}\nlibrary enumerator is aborting", error);
             return
         }
     }
@@ -51,21 +53,21 @@ pub fn enumerate(domain: String,
     let wc = Arc::new(wildcards);
 
     // Begin enumeration
-    let mut subdomains = lib_buf.lines();
-    while let Some(Ok(subdomain)) = subdomains.next() {
-        let arg1 = format!("{}.{}", subdomain, domain);
-        let arg2 = library.clone();
-        let arg3 = wc.clone();
-        let arg4 = store.clone();
-        let arg5;
+    let mut prefixes = lib_buf.lines();
+    while let Some(Ok(prefix)) = prefixes.next() {
+        let subdomain = format!("{}.{}", prefix, domain);
+        let new_lib = library.clone();
+        let new_wc = wc.clone();
+        let new_store = store.clone();
+        let top;
         if let Some(sd) = superdomain.clone() {
-            arg5 = sd;
+            top = sd;
         } else {
-            arg5 = domain.clone();
+            top = domain.clone();
         }
 
         thread::spawn(move || {
-            enumerate_branch(arg1, arg2, arg3, arg4, arg5);
+            try_subdomain(subdomain, new_lib, new_wc, new_store, top);
         });
     }
 }
@@ -76,7 +78,7 @@ pub fn enumerate(domain: String,
 // if a wildcard record is in use, store its addresses in the hash set
 fn get_wildcards(domain : &String, wc : &mut HashSet<IpAddr>) {
     // Make up a weird name
-    let name = format!("asdfjklv1423.{}", domain);
+    let name = format!("IfThisWorksThisDomainUsesAWildcardRecord.{}", domain);
 
     match lookup_host(name.as_str()) {
         Ok(vec) => {
@@ -92,11 +94,18 @@ fn get_wildcards(domain : &String, wc : &mut HashSet<IpAddr>) {
     println!("Discovered wildcard record for host {} with {} IP addresses", domain, wc.len());
 }
 
-fn enumerate_branch(subdomain : String,
-                    library: String,
-                    wc : Arc<HashSet<IpAddr>>,
-                    store : Arc<Mutex<HashMap<String, HashSet<String>>>>,
-                    domain : String) {
+// Takes a string representing the subdomain to try,
+// a string representing the path to the library,
+// a hash set containing wildcard IP addresses,
+// a hash map holding domain-subdomains pairs,
+// and a string indicating the top-level domain of the current subdomain
+// Attempts to resolve subdomain name by querying DNS
+// If successful add subdomain name to the hash map
+fn try_subdomain(subdomain : String,
+                 library: String,
+                 wc : Arc<HashSet<IpAddr>>,
+                 store : Arc<Mutex<HashMap<String, HashSet<String>>>>,
+                 domain : String) {
     if query(&subdomain, wc.as_ref()) {
         let mut map = store.lock().unwrap();
 
@@ -122,7 +131,8 @@ fn enumerate_branch(subdomain : String,
 fn query(name : &String, wc : &HashSet<IpAddr>) -> bool {
     match lookup_host(name) {
         Ok(vec) => {
-            while let Some(addr) = vec.iter().next() {
+            let mut iter = vec.iter();
+            while let Some(addr) = iter.next() {
                 if !wc.contains(addr) {
                     return true
                 }
@@ -133,8 +143,52 @@ fn query(name : &String, wc : &HashSet<IpAddr>) -> bool {
             return false
         }
     }
-
     return false
 }
 
-// TODO write tests
+#[cfg(test)]
+mod query_tests {
+    use super::*;
+
+    #[test]
+    fn localhost_test() {
+        let name = String::from("localhost");
+        let wc = HashSet::new();
+
+        assert_eq!(query(&name, &wc), true);
+    }
+
+    #[test]
+    fn localhost_fail_test() {
+        let name = String::from("localhost");
+        let mut wc : HashSet<IpAddr> = HashSet::new();
+
+        match lookup_host(&name) {
+            Ok(vec) => {
+                let mut iter = vec.iter();
+                while let Some(addr) = iter.next() {
+                    wc.insert(*addr);
+                }
+            }
+            Err(_e) => {}
+        }
+
+        assert_eq!(query(&name, &wc), false);
+    }
+}
+
+#[cfg(test)]
+mod get_wildcards_tests {
+    use super::*;
+
+    // not sure how to test case with wildcard
+
+    #[test]
+    fn no_wildcard_test() {
+        let name = String::from("localhost");
+        let mut wc = HashSet::new();
+        get_wildcards(&name, &mut wc);
+
+        assert_eq!(wc.len(), 0);
+    }
+}

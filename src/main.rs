@@ -1,14 +1,14 @@
 extern crate subdomain_enumerator;
 extern crate clap;
-use clap::{Arg, App};
 
+use clap::{Arg, App};
 // used to read arguments passed on command line
-use std::collections::{HashMap, HashSet};
-use std::thread;
+
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use std::thread;
 use subdomain_enumerator::enumerator;
 use subdomain_enumerator::library_enumerator;
-
 
 fn main() {
     // read arguments from command line 
@@ -28,9 +28,8 @@ fn main() {
                                .help("Specifies the wordlist to use for dictionary enumeration."))
                           .get_matches();
 
-    let mut map : HashMap<String, HashSet<String>> = HashMap::new();
-    let subdomains = Arc::new(Mutex::new(map));
     let domains: Vec<_> = matches.values_of("domains").unwrap().collect();
+    let subdomains = Arc::new(Mutex::new(HashMap::new()));
     let limit_arg = matches.value_of("limit").unwrap_or("10");
     let limit: usize = limit_arg.parse().unwrap();
 
@@ -44,16 +43,17 @@ fn main() {
         });
     }
     */
-    
+
+    // concurrently begin library enumeration
     if matches.is_present("wordlist") {
         let dictionary = matches.value_of("wordlist").unwrap();
 
         for i in 0..domains.len(){
             let domain = domains[i].to_string();
             let library = dictionary.to_string();
-            let lock = subdomains.clone();
+            let store = subdomains.clone();
             thread::spawn(move || {
-                library_enumerator::enumerate(domain, library, lock, None);
+                library_enumerator::enumerate(domain, library, store, None);
             });
         }
     }
