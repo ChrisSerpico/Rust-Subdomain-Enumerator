@@ -1,6 +1,7 @@
 extern crate reqwest;
 extern crate dns_lookup;
-use std::sync::{Arc, Mutex};
+
+use std::sync::Arc;
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufReader, BufRead};
@@ -8,7 +9,7 @@ use std::mem;
 use std::net::IpAddr;
 use std::thread;
 use self::dns_lookup::lookup_host;
-use subdomain_enumerator::results;
+use results::Results;
 
 
 #[derive(Deserialize, Debug)]
@@ -59,7 +60,7 @@ impl Query {
     	self.library = library;
     }
 
-    pub fn get_num_domains(&mut self) -> usize{
+    pub fn get_num_domains(&self) -> usize{
     	self.num_domains
     }
 
@@ -142,7 +143,7 @@ impl Query {
 	        mem::drop(found);
 
 	        // Recurse on valid subdomain
-	        let new = store.clone();
+	        let new = results.clone();
 	        thread::spawn(move || {
 	            enumerate(subdomain, library, new);
 	        });
