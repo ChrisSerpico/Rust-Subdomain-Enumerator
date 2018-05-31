@@ -65,18 +65,18 @@ impl Query {
     	self.num_domains
     }
 
-    pub fn query_database(&self, domain_position:usize, store: Arc<Mutex<HashSet<String>>>) {
+    pub fn query_database(&self, domain_position:usize, results: Results) {
     	let url = format!("https://www.virustotal.com/ui/domains/{}/subdomains?limit={}", self.domains[domain_position], self.limit);
 	    let client = reqwest::Client::new();
 	    let virustotal: Resp = client.get(&url).send().unwrap().json().unwrap();
 
-	    let mut set = store.lock().unwrap();
+	    let mut set = results.get_writable_store();
 	    for subdomain in virustotal.data.iter(){
 	        set.insert(subdomain.id.clone());
 	    }
     }
 
-    pub fn enumerate_library(&self, domain_position:usize, store: Arc<Mutex<HashSet<String>>>)  {
+    pub fn enumerate_library(&self, domain_position:usize, store: Results)  {
 	    let lib_buf;
 	    match File::open(&library) {
 	        Ok(lib) => {
@@ -137,9 +137,9 @@ impl Query {
 	fn try_subdomain(subdomain : String,
 	                 library: String,
 	                 wc : Arc<HashSet<IpAddr>>,
-	                 store : Arc<Mutex<HashSet<String>>>) {
+	                 results : Results) {
 	    if query(&subdomain, wc.as_ref()) {
-	        let mut found = store.lock().unwrap();
+	        let mut found = results.get_writable_store();
 	        found.insert(subdomain.clone());
 	        mem::drop(found);
 

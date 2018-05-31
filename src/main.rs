@@ -53,7 +53,6 @@ fn main() {
     }
     else {
         for i in 0..config.get_num_domains() {
-
             let handle: thread::JoinHandle<_> = thread::spawn(move || {
                 query.query_database(i, results.store);
             });
