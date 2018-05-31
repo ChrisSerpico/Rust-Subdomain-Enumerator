@@ -89,19 +89,19 @@ impl Query {
 
 	    // Used to track wildcard records
 	    let mut wildcards : HashSet<IpAddr> = HashSet::new();
-	    get_wildcards(self.domains[domain_position], &mut wildcards);
+	    self.get_wildcards(&self.domains[domain_position], &mut wildcards);
 	    let wc = Arc::new(wildcards);
 
 	    // Begin enumeration
 	    let mut prefixes = lib_buf.lines();
 	    while let Some(Ok(prefix)) = prefixes.next() {
-	        let subdomain = format!("{}.{}", prefix, self.domain[domain_position]);
+	        let subdomain = format!("{}.{}", prefix, self.domains[domain_position]);
 	        let new_lib = self.library.clone();
 	        let new_wc = wc.clone();
 	        let new_store = store.clone();
 
 	        thread::spawn(move || {
-	            try_subdomain(subdomain, new_lib, new_wc, new_store);
+	            self.try_subdomain(subdomain, new_lib, new_wc, new_store);
 	        });
 	    }
 	}
@@ -109,7 +109,7 @@ impl Query {
 	// and a empty hash set for storing wildcard addresses
 	// Checks whether the domain name has a wildcard DNS record;
 	// if a wildcard record is in use, store its addresses in the hash set
-	fn get_wildcards(domain : &String, wc : &mut HashSet<IpAddr>) {
+	fn get_wildcards(&self, domain : &String, wc : &mut HashSet<IpAddr>) {
 	    // Make up a weird name
 	    let name = format!("IfThisWorksThisDomainUsesAWildcardRecord.{}", domain);
 
@@ -133,11 +133,11 @@ impl Query {
 	// and a hash set for holding discovered subdomains
 	// Attempts to resolve subdomain name by querying DNS
 	// If successful add subdomain name to the discovered hash set
-	fn try_subdomain(subdomain : String,
+	fn try_subdomain(&self, subdomain : String,
 	                 library: String,
 	                 wc : Arc<HashSet<IpAddr>>,
 	                 results : Results) {
-	    if query(&subdomain, wc.as_ref()) {
+	    if self.query(&subdomain, wc.as_ref()) {
 	        let mut found = results.get_writable_store();
 	        found.insert(subdomain.clone());
 	        mem::drop(found);
@@ -145,7 +145,7 @@ impl Query {
 	        // Recurse on valid subdomain
 	        let new = results.clone();
 	        thread::spawn(move || {
-	            enumerate(subdomain, library, new);
+	            self.enumerate(subdomain, library, new);
 	        });
 	    }
 	}
@@ -154,7 +154,7 @@ impl Query {
 	// and a hash set containing wildcard addresses
 	// If the name can be resolved and is not a wildcard, return true
 	// Otherwise return false
-	fn query(name : &String, wc : &HashSet<IpAddr>) -> bool {
+	fn query(&self, name : &String, wc : &HashSet<IpAddr>) -> bool {
 	    match lookup_host(name) {
 	        Ok(vec) => {
 	            let mut iter = vec.iter();

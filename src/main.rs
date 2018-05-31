@@ -44,8 +44,8 @@ fn main() {
 
         for i in 0..config.get_num_domains() {         
             let handle: thread::JoinHandle<_> = thread::spawn(move || {
-                query.query_database(i, results.store);
-                query.enumerate_library(i, results.store);
+                query.query_database(i, results.get_store());
+                query.enumerate_library(i, results.get_store());
             });
 
             threads.push(handle);
@@ -54,7 +54,7 @@ fn main() {
     else {
         for i in 0..config.get_num_domains() {
             let handle: thread::JoinHandle<_> = thread::spawn(move || {
-                query.query_database(i, results.store);
+                query.query_database(i, results.get_store());
             });
 
             threads.push(handle);

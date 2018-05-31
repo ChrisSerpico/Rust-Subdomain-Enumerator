@@ -6,7 +6,7 @@ pub struct Results {
     store: Vec<Arc<Mutex<HashSet<String>>>>,
 }
 
-impl Query {
+impl Results {
     pub fn new(num_domains: usize) -> Self {
         Results{
         	store: vec![Arc::new(Mutex::new(HashSet::new())); num_domains],
