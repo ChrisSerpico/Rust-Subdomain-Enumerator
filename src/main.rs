@@ -10,7 +10,22 @@ use std::thread;
 use subdomain_enumerator::enumerator;
 use subdomain_enumerator::library_enumerator;
 
+#[derive(Debug)]
+struct Config {
+    domains: Vec<String>,
+    library: String,
+    limit: usize,
+    num_domains: usize,
+
+}
+
 fn main() {
+    let mut config = Config{
+      domains: Vec::new(),
+      library: String::new(),
+      limit: 10,
+      num_domains: 0,
+    };
     // read arguments from command line 
     let matches = App::new("Concurrent Subdomain Enumerator")
                           .version("1.0")
@@ -29,22 +44,24 @@ fn main() {
                                .help("Specifies the wordlist to use for dictionary enumeration."))
                           .get_matches();
 
-    let domains: Vec<_> = matches.values_of("domains").unwrap().collect();
-    let subdomains : Vec<Arc<Mutex<HashSet<String>>>>  = vec![Arc::new(Mutex::new(HashSet::new())); domains.len()];
-    let limit_arg = matches.value_of("limit").unwrap_or("10");
-    let limit: usize = limit_arg.parse().unwrap();
-    let lim = limit.clone();
+    config.domains = matches.values_of_lossy("domains").unwrap();
+    config.num_domains = config.domains.len();
+    let subdomains : Vec<Arc<Mutex<HashSet<String>>>>  = vec![Arc::new(Mutex::new(HashSet::new())); config.num_domains];
+    if matches.is_present("limit") {
+        let limit_arg = matches.value_of("limit").unwrap();
+        config.limit = limit_arg.parse().unwrap();
+    }  
     let mut threads = Vec::new();
 
     if matches.is_present("wordlist") {
-        let dictionary = matches.value_of("wordlist").unwrap();
+        config.library = matches.value_of("wordlist").unwrap().to_string();
 
-        for i in 0..domains.len() {
-            let domain = domains[i].to_string();
-            let library = dictionary.to_string();
+        for i in 0..config.num_domains {
+            let domain = config.domains[i].to_string();
+            let library = config.library.to_string();
             let store = subdomains[i].clone();           
             let handle: thread::JoinHandle<_> = thread::spawn(move || {
-                enumerator::query_database(domain.clone(), store.clone(), lim);
+                enumerator::query_database(domain.clone(), store.clone(), config.limit);
                 library_enumerator::enumerate(domain, library, store);
             });
 
@@ -52,11 +69,11 @@ fn main() {
         }
     }
     else {
-        for i in 0..domains.len() {
-            let domain = domains[i].to_string();
+        for i in 0..config.num_domains {
+            let domain = config.domains[i].to_string();
             let store = subdomains[i].clone();
             let handle: thread::JoinHandle<_> = thread::spawn(move || {
-                enumerator::query_database(domain.clone(), store.clone(), lim);
+                enumerator::query_database(domain.clone(), store.clone(), config.limit);
             });
 
             threads.push(handle);
