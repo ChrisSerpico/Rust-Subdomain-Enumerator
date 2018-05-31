@@ -34,29 +34,36 @@ fn main() {
     let limit_arg = matches.value_of("limit").unwrap_or("10");
     let limit: usize = limit_arg.parse().unwrap();
     let lim = limit.clone();
+    let mut threads = Vec::new();
 
-    
+    if matches.is_present("wordlist") {
+        let dictionary = matches.value_of("wordlist").unwrap();
 
-    for i in 0..domains.len() {
-        let domain = domains[i].to_string();
-        let store = subdomains[i].clone();
-        if matches.is_present("wordlist") {
-            let dictionary = matches.value_of("wordlist").unwrap();
-            let handle = thread::spawn(move || {
-                enumerator::query_database(domain.clone(), store.clone(), lim);
-                println!("{:?}", store); 
-            });
-        }
-        else{
-            let handle = thread::spawn(move || {
+        for i in 0..domains.len() {
+            let domain = domains[i].to_string();
+            let library = dictionary.to_string();
+            let store = subdomains[i].clone();           
+            let handle: thread::JoinHandle<_> = thread::spawn(move || {
                 enumerator::query_database(domain.clone(), store.clone(), lim);
                 library_enumerator::enumerate(domain, library, store);
             });
+
+            threads.push(handle);
         }
+    }
+    else {
+        for i in 0..domains.len() {
+            let domain = domains[i].to_string();
+            let store = subdomains[i].clone();
+            let handle: thread::JoinHandle<_> = thread::spawn(move || {
+                enumerator::query_database(domain.clone(), store.clone(), lim);
+            });
 
-    }  
+            threads.push(handle);
+        }  
+    }
 
+    for child in threads{
+        child.join().unwrap();
+    }
 }
-            
-
-        
