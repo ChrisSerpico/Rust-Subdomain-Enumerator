@@ -18,6 +18,7 @@ fn main() {
                           .arg(Arg::with_name("domains")
                                .required(true)
                                .takes_value(true)
+                               .multiple(true)
                                .help("Specifies the domains to enumerate."))
                           .arg(Arg::with_name("limit")
                                .short("l")
@@ -32,36 +33,30 @@ fn main() {
     let subdomains : Vec<Arc<Mutex<HashSet<String>>>>  = vec![Arc::new(Mutex::new(HashSet::new())); domains.len()];
     let limit_arg = matches.value_of("limit").unwrap_or("10");
     let limit: usize = limit_arg.parse().unwrap();
+    let lim = limit.clone();
 
-    if matches.is_present("wordlist") {
-        let dictionary = matches.value_of("wordlist").unwrap();
+    
 
-        for i in 0..domains.len() {
-            let domain = domains[i].to_string();
-            let library = dictionary.to_string();
-            let store = subdomains[i].clone();
-            let lim = limit.clone();
-            let handle = thread::spawn(move || {
-                enumerator::query_database(domain.clone(), store.clone(), lim);
-                library_enumerator::enumerate(domain, library, store);
-            });
-
-            // make sure the thread has run to completion before exiting 
-            handle.join().unwrap(); 
-        }
-    }
-    else {
-        for i in 0..domains.len() {
-            let domain = domains[i].to_string();
-            let store = subdomains[i].clone();
-            let lim = limit.clone();
+    for i in 0..domains.len() {
+        let domain = domains[i].to_string();
+        let store = subdomains[i].clone();
+        if matches.is_present("wordlist") {
+            let dictionary = matches.value_of("wordlist").unwrap();
             let handle = thread::spawn(move || {
                 enumerator::query_database(domain.clone(), store.clone(), lim);
                 println!("{:?}", store); 
             });
+        }
+        else{
+            let handle = thread::spawn(move || {
+                enumerator::query_database(domain.clone(), store.clone(), lim);
+                library_enumerator::enumerate(domain, library, store);
+            });
+        }
 
-            // make sure the thread has run to completion before exiting 
-            handle.join().unwrap(); 
-        }  
-    }
+    }  
+
 }
+            
+
+        
