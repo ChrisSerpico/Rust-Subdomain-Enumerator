@@ -1,9 +1,6 @@
 extern crate reqwest;
 extern crate dns_lookup;
-
-use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
-
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufReader, BufRead};
@@ -11,6 +8,7 @@ use std::mem;
 use std::net::IpAddr;
 use std::thread;
 use self::dns_lookup::lookup_host;
+use subdomain_enumerator::results;
 
 
 #[derive(Deserialize, Debug)]
@@ -78,7 +76,7 @@ impl Query {
 
     pub fn enumerate_library(&self, domain_position:usize, store: Results)  {
 	    let lib_buf;
-	    match File::open(&library) {
+	    match File::open(self.library) {
 	        Ok(lib) => {
 	            lib_buf = BufReader::new(lib);
 	        }
@@ -90,14 +88,14 @@ impl Query {
 
 	    // Used to track wildcard records
 	    let mut wildcards : HashSet<IpAddr> = HashSet::new();
-	    get_wildcards(self.domain[domain_position], &mut wildcards);
+	    get_wildcards(self.domains[domain_position], &mut wildcards);
 	    let wc = Arc::new(wildcards);
 
 	    // Begin enumeration
 	    let mut prefixes = lib_buf.lines();
 	    while let Some(Ok(prefix)) = prefixes.next() {
 	        let subdomain = format!("{}.{}", prefix, self.domain[domain_position]);
-	        let new_lib = library.clone();
+	        let new_lib = self.library.clone();
 	        let new_wc = wc.clone();
 	        let new_store = store.clone();
 

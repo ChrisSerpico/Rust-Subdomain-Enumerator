@@ -1,3 +1,6 @@
+use std::collections::HashSet;
+use std::sync::{Arc, Mutex};
+
 #[derive(Debug)]
 pub struct Results {
     store: Vec<Arc<Mutex<HashSet<String>>>>,
@@ -6,7 +9,7 @@ pub struct Results {
 impl Query {
     pub fn new(num_domains: usize) -> Self {
         Results{
-        	store: vec![Arc::new(Mutex::new(HashSet::new())); num_domains];,
+        	store: vec![Arc::new(Mutex::new(HashSet::new())); num_domains],
         }
     }
 
@@ -14,7 +17,7 @@ impl Query {
     	self.store
     }
 
-    pub fn get_writable_store(&self) -> <HashSet<String>>{
-    	store.lock().unwrap()
+    pub fn get_writable_store(&self) -> HashSet<String> {
+    	self.store.lock().unwrap()
     }
 }
