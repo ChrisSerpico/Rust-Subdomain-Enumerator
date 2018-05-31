@@ -7,25 +7,13 @@ use clap::{Arg, App};
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use subdomain_enumerator::enumerator;
+use subdomain_enumerator::query;
 use subdomain_enumerator::library_enumerator;
 
-#[derive(Debug)]
-struct Config {
-    domains: Vec<String>,
-    library: String,
-    limit: usize,
-    num_domains: usize,
 
-}
 
 fn main() {
-    let mut config = Config{
-      domains: Vec::new(),
-      library: String::new(),
-      limit: 10,
-      num_domains: 0,
-    };
+    let mut config = Config::new();
     // read arguments from command line 
     let matches = App::new("Concurrent Subdomain Enumerator")
                           .version("1.0")
