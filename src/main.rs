@@ -7,11 +7,12 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use subdomain_enumerator::query;
 use subdomain_enumerator::results;
-
+use query::Query;
+use results::Results;
 
 
 fn main() {
-    let mut config = Config::new();
+    let mut query = Query::new();
     let matches = App::new("Concurrent Subdomain Enumerator")
                           .version("1.0")
                           .about("Queries VirusTotal for subdomains and performs dictionary enumeration.")
@@ -29,32 +30,32 @@ fn main() {
                                .help("Specifies the wordlist to use for dictionary enumeration."))
                           .get_matches();
 
-    config.add_domains(matches.values_of_lossy("domains").unwrap());
-    let results = Results::new(config.get_num_domains());
+    query.add_domains(matches.values_of_lossy("domains").unwrap());
+    let results = Results::new(query.get_num_domains());
 
     if matches.is_present("limit") {
         let limit_arg = matches.value_of("limit").unwrap();
-        config.set_limit(limit_arg.parse().unwrap());
+        query.set_limit(limit_arg.parse().unwrap());
     }  
 
     let mut threads = Vec::new();
 
     if matches.is_present("wordlist") {
-        config.set_library(matches.value_of("wordlist").unwrap().to_string());
+        query.set_library(matches.value_of("wordlist").unwrap().to_string());
 
-        for i in 0..config.get_num_domains() {         
+        for i in 0..query.get_num_domains() {         
             let handle: thread::JoinHandle<_> = thread::spawn(move || {
-                query.query_database(i, results.get_store());
-                query.enumerate_library(i, results.get_store());
+                query.query_database(i, results);
+                // query.enumerate_library(i, results);
             });
 
             threads.push(handle);
         }
     }
     else {
-        for i in 0..config.get_num_domains() {
+        for i in 0..query.get_num_domains() {
             let handle: thread::JoinHandle<_> = thread::spawn(move || {
-                query.query_database(i, results.get_store());
+                query.query_database(i, results);
             });
 
             threads.push(handle);

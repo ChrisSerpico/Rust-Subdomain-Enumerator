@@ -1,9 +1,9 @@
 use std::collections::HashSet;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 
 #[derive(Debug)]
 pub struct Results {
-    store: Vec<Arc<Mutex<HashSet<String>>>>,
+    pub store: Vec<Arc<Mutex<HashSet<String>>>>,
 }
 
 impl Results {
@@ -13,11 +13,7 @@ impl Results {
         }
     }
 
-    pub fn get_store(&self) -> Vec<Arc<Mutex<HashSet<String>>>>{
-    	self.store
-    }
-
-    pub fn get_writable_store(&self) -> HashSet<String> {
-    	self.store.lock().unwrap()
+    pub fn insert_subdomain(&self, domain_position: usize, subdomain: String){
+    	self.store[domain_position].lock().unwrap().insert(subdomain);
     }
 }

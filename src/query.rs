@@ -69,42 +69,41 @@ impl Query {
 	    let client = reqwest::Client::new();
 	    let virustotal: Resp = client.get(&url).send().unwrap().json().unwrap();
 
-	    let mut set = results.get_writable_store();
 	    for subdomain in virustotal.data.iter(){
-	        set.insert(subdomain.id.clone());
+	    	results.insert_subdomain(domain_position, subdomain.id.clone())
 	    }
     }
 
-    pub fn enumerate_library(&self, domain_position:usize, store: Results)  {
-	    let lib_buf;
-	    match File::open(self.library) {
-	        Ok(lib) => {
-	            lib_buf = BufReader::new(lib);
-	        }
-	        Err(error) => {
-	            eprintln!("enumerate: {}\nlibrary enumerator is aborting", error);
-	            return
-	        }
-	    }
+ //    pub fn enumerate_library(&self, domain_position:usize, store: Results)  {
+	//     let lib_buf;
+	//     match File::open(self.library) {
+	//         Ok(lib) => {
+	//             lib_buf = BufReader::new(lib);
+	//         }
+	//         Err(error) => {
+	//             eprintln!("enumerate: {}\nlibrary enumerator is aborting", error);
+	//             return
+	//         }
+	//     }
 
-	    // Used to track wildcard records
-	    let mut wildcards : HashSet<IpAddr> = HashSet::new();
-	    self.get_wildcards(&self.domains[domain_position], &mut wildcards);
-	    let wc = Arc::new(wildcards);
+	//     // Used to track wildcard records
+	//     let mut wildcards : HashSet<IpAddr> = HashSet::new();
+	//     self.get_wildcards(&self.domains[domain_position], &mut wildcards);
+	//     let wc = Arc::new(wildcards);
 
-	    // Begin enumeration
-	    let mut prefixes = lib_buf.lines();
-	    while let Some(Ok(prefix)) = prefixes.next() {
-	        let subdomain = format!("{}.{}", prefix, self.domains[domain_position]);
-	        let new_lib = self.library.clone();
-	        let new_wc = wc.clone();
-	        let new_store = store.clone();
+	//     // Begin enumeration
+	//     let mut prefixes = lib_buf.lines();
+	//     while let Some(Ok(prefix)) = prefixes.next() {
+	//         let subdomain = format!("{}.{}", prefix, self.domains[domain_position]);
+	//         let new_lib = self.library.clone();
+	//         let new_wc = wc.clone();
+	//         let new_store = store.clone();
 
-	        thread::spawn(move || {
-	            self.try_subdomain(subdomain, new_lib, new_wc, new_store);
-	        });
-	    }
-	}
+	//         thread::spawn(move || {
+	//             self.try_subdomain(subdomain, new_lib, new_wc, new_store);
+	//         });
+	//     }
+	// }
 	// Takes a string representing the domain name,
 	// and a empty hash set for storing wildcard addresses
 	// Checks whether the domain name has a wildcard DNS record;
@@ -133,22 +132,22 @@ impl Query {
 	// and a hash set for holding discovered subdomains
 	// Attempts to resolve subdomain name by querying DNS
 	// If successful add subdomain name to the discovered hash set
-	fn try_subdomain(&self, subdomain : String,
-	                 library: String,
-	                 wc : Arc<HashSet<IpAddr>>,
-	                 results : Results) {
-	    if self.query(&subdomain, wc.as_ref()) {
-	        let mut found = results.get_writable_store();
-	        found.insert(subdomain.clone());
-	        mem::drop(found);
+	// fn try_subdomain(&self, subdomain : String,
+	//                  library: String,
+	//                  wc : Arc<HashSet<IpAddr>>,
+	//                  results : Results) {
+	//     if self.query(&subdomain, wc.as_ref()) {
+	//         let mut found = results.get_writable_store();
+	//         found.insert(subdomain.clone());
+	//         mem::drop(found);
 
-	        // Recurse on valid subdomain
-	        let new = results.clone();
-	        thread::spawn(move || {
-	            self.enumerate(subdomain, library, new);
-	        });
-	    }
-	}
+	//         // Recurse on valid subdomain
+	//         let new = results.clone();
+	//         thread::spawn(move || {
+	//             self.enumerate_library(subdomain, library, new);
+	//         });
+	//     }
+	// }
 
 	// Takes a string representing the name to query,
 	// and a hash set containing wildcard addresses
