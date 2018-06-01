@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex, MutexGuard};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Results {
     pub store: Vec<Arc<Mutex<HashSet<String>>>>,
 }

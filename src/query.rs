@@ -23,7 +23,7 @@ struct Subdomain {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Query {
     domains: Vec<String>,
     library: String,

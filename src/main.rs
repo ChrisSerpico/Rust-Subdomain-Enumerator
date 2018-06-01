@@ -43,9 +43,11 @@ fn main() {
     if matches.is_present("wordlist") {
         query.set_library(matches.value_of("wordlist").unwrap().to_string());
 
-        for i in 0..query.get_num_domains() {         
+        for i in 0..query.get_num_domains() { 
+            let new_query = query.clone();  
+            let new_results = results.clone();      
             let handle: thread::JoinHandle<_> = thread::spawn(move || {
-                query.query_database(i, results);
+                new_query.query_database(i, new_results);
                 // query.enumerate_library(i, results);
             });
 
@@ -54,8 +56,10 @@ fn main() {
     }
     else {
         for i in 0..query.get_num_domains() {
-            let handle: thread::JoinHandle<_> = thread::spawn(move || {
-                query.query_database(i, results);
+            let new_query = query.clone();  
+            let new_results = results.clone();  
+            let handle: thread::JoinHandle<_> = thread::spawn(move || { 
+                new_query.query_database(i, new_results);
             });
 
             threads.push(handle);
