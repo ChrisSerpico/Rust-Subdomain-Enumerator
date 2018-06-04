@@ -110,7 +110,7 @@ fn query(name : &String, wc : &HashSet<IpAddr>) -> bool {
             }
         }
         Err(error) => {
-            eprintln!("query: {}", error);
+            eprintln!("query: {} \n target: {}\n", error, name);
             return false
         }
     }

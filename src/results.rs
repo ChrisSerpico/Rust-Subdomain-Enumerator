@@ -19,9 +19,9 @@ impl Results {
 
     pub fn print_subdomains(&self){
     	println!("{:?}", self.store);
-    	
 
-    		
+
+
     }
 
 }

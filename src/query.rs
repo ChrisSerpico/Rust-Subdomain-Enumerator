@@ -55,7 +55,7 @@ impl Query {
     }
 
     pub fn enumerate(&self) -> Results{
-        let results = Results::new(self.num_domains);
+        let results = Results::new(self.num_domains, self.domains.clone());
         let wg = WaitGroup::new();
 
         if self.library.len() != 0 {
