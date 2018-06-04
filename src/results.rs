@@ -8,9 +8,9 @@ pub struct Results {
 }
 
 impl Results {
-    pub fn new(num_domains: usize) -> Self {
+    pub fn new(num_domains: usize, list : Vec<String>) -> Self {
         Results{
-        	domain_list: Vec::new(),
+        	domain_list: list,
         	store: vec![Arc::new(Mutex::new(HashSet::new())); num_domains],
         }
     }
