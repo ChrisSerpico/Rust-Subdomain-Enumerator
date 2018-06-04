@@ -21,6 +21,7 @@ use std::thread;
 use self::chan::WaitGroup;
 use self::dns_lookup::lookup_host;
 
+
 /// Takes a domain, a library, a store, and a wg (WaitGroup). For each word supplied in library, checkes to see whether the word specifies a subdomain of domain. If it does, the found subdomain is added to store. 
 ///
 /// # Examples
@@ -36,7 +37,7 @@ pub fn enumerate(domain: String,
         }
         Err(error) => {
             // TODO should propagate error instead
-            eprintln!("enumerate: {}\nlibrary enumerator is aborting", error);
+            // eprintln!("enumerate: {}\nlibrary enumerator is aborting", error);
             return
         }
     }
@@ -76,7 +77,7 @@ fn get_wildcards(domain : &String, wc : &mut HashSet<IpAddr>) {
         }
         Err(error) => {
             // TODO should propagate error instead
-            eprintln!("get_wildcards: {}", error);
+            // eprintln!("get_wildcards: {}", error);
         }
     }
 }
@@ -114,7 +115,7 @@ fn query(name : &String, wc : &HashSet<IpAddr>) -> bool {
             }
         }
         Err(error) => {
-            eprintln!("query: {} \n target: {}\n", error, name);
+            // eprintln!("query: {}", error);
             return false
         }
     }

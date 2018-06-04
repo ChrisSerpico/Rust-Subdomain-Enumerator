@@ -15,7 +15,7 @@ struct Subdomain {
     id: String,
 }
 
-/// Takes a domain, a store, and a limit. Queries virustotal.com with the domain, and adds found subdomains to store until the number of subdomains found reaches the amount specified by limit.  
+// takes a domain name as a string and returns a vector of subdomains as strings 
 pub fn query_database(domain: String,
                       store: Arc<Mutex<HashSet<String>>>,
                       limit: usize) {

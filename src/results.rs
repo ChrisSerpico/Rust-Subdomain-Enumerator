@@ -21,9 +21,10 @@ impl Results {
 
     pub fn print_subdomains(&self){
     	for i in 0..self.domain_list.len() {
-    		println!("Domain: {}\n Subdomains:", self.domain_list[i]);
+    		println!("Domain: {}", self.domain_list[i]);
+    		println!("Subdomains:");
     		for subdomain in self.store[i].lock().unwrap().iter(){
-    			println!("{}", subdomain);
+    			println!("\t\t{}", subdomain);
     		}
     	}
     }
