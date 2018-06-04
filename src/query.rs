@@ -61,14 +61,14 @@ impl Query {
         if self.library.len() != 0 {
             for i in 0..self.num_domains {
                 // args for query_database
-                let db_arg1 = self.domains[domain_position].clone();
-                let db_arg2 = results.store[domain_position].clone();
+                let db_arg1 = self.domains[i].clone();
+                let db_arg2 = results.store[i].clone();
                 let db_arg3 = self.limit.clone();
 
                 // args for library enum
-                let lib_arg1 =  self.domains[domain_position].clone();
+                let lib_arg1 =  self.domains[i].clone();
                 let lib_arg2 = self.library.clone();
-                let lib_arg3 = results.store[domain_position].clone();
+                let lib_arg3 = results.store[i].clone();
                 let lib_arg4 = wg.clone();
                 let new_wg = wg.clone();
 
@@ -82,14 +82,15 @@ impl Query {
         }
         else {
             for i in 0..self.num_domains {
-                let db_arg1 = self.domains[domain_position].clone();
-                let db_arg2 = results.store[domain_position].clone();
+                let db_arg1 = self.domains[i].clone();
+                let db_arg2 = results.store[i].clone();
                 let db_arg3 = self.limit.clone();
+                let new_wg = wg.clone();
 
                 wg.add(1);
                 thread::spawn(move || {
                     enumerator::query_database(db_arg1, db_arg2, db_arg3);
-                    wg.done();
+                    new_wg.done();
                 });
             }
         }
