@@ -16,4 +16,12 @@ impl Results {
     pub fn insert_subdomain(&self, domain_position: usize, subdomain: String){
     	self.store[domain_position].lock().unwrap().insert(subdomain);
     }
+
+    pub fn print_subdomains(&self){
+    	println!("{:?}", self.store);
+    	
+
+    		
+    }
+
 }

@@ -10,12 +10,14 @@ fn main() {
                           .version("1.0")
                           .about("Queries VirusTotal for subdomains and performs dictionary enumeration.")
                           .arg(Arg::with_name("domains")
+                               .short("d")
                                .required(true)
                                .takes_value(true)
                                .multiple(true)
                                .help("Specifies the domains to enumerate."))
                           .arg(Arg::with_name("limit")
                                .short("l")
+                               .takes_value(true)
                                .help("Specifies the number of subdomains to query for each domain."))
                           .arg(Arg::with_name("wordlist")
                                .short("w")
@@ -33,5 +35,7 @@ fn main() {
         query.set_library(matches.value_of("wordlist").unwrap().to_string());
     }
 
-    query.enumerate();
+    let subdomains = query.enumerate();
+    subdomains.print_subdomains();
+
 }

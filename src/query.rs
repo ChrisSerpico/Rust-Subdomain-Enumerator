@@ -51,10 +51,10 @@ impl Query {
     }
 
     pub fn set_limit(&mut self, limit: usize){
-       	self.limit = limit;
+        self.limit = limit;
     }
 
-    pub fn enumerate(&self) {
+    pub fn enumerate(&self) -> Results{
         let results = Results::new(self.num_domains);
         let wg = WaitGroup::new();
 
@@ -98,5 +98,6 @@ impl Query {
         wg.wait();
 
         // TODO do something with results
+        results
     }
 }

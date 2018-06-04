@@ -1,15 +1,11 @@
 /*!
-
 Vickie Li, Alex Lu Wang, Chris Serpico
-
 Contains code for a subdomain enumerator that finds subdomains
 by trying subdomains generated with a library of common words.
-
 ASSUMPTIONS:
     1. The domain name is in the form "domain-name.com",
     so something like "www.domain-name.com" will not work
     2. The library file contains one word per line
-
 */
 
 extern crate chan;
