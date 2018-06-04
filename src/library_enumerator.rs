@@ -12,8 +12,8 @@ ASSUMPTIONS:
 
 */
 
-extern crate dns_lookup;
 extern crate chan;
+extern crate dns_lookup;
 
 use std::collections::HashSet;
 use std::fs::File;
@@ -22,26 +22,20 @@ use std::mem;
 use std::net::IpAddr;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use self::dns_lookup::lookup_host;
 use self::chan::WaitGroup;
+use self::dns_lookup::lookup_host;
 
-// Takes a string representing the domain to query,
-// a string representing the pathname to library,
-// and a hash set for holding discovered subdomains
-// Appends each subdomain prefix from the library to the domain name
-// and passes the concatenated name to resolvers
-// If the name is resolvable, it is added as a valid subdomain
-// and recursively enumerated on
 pub fn enumerate(domain: String,
                  library: String,
                  store : Arc<Mutex<HashSet<String>>>,
-                 wg : WaitGroup)  {
+                 wg : WaitGroup) {
     let lib_buf;
     match File::open(&library) {
         Ok(lib) => {
             lib_buf = BufReader::new(lib);
         }
         Err(error) => {
+            // TODO should propagate error instead
             eprintln!("enumerate: {}\nlibrary enumerator is aborting", error);
             return
         }
@@ -70,10 +64,6 @@ pub fn enumerate(domain: String,
     }
 }
 
-// Takes a string representing the domain name,
-// and a empty hash set for storing wildcard addresses
-// Checks whether the domain name has a wildcard DNS record;
-// if a wildcard record is in use, store its addresses in the hash set
 fn get_wildcards(domain : &String, wc : &mut HashSet<IpAddr>) {
     // Make up a weird name
     let name = format!("IfThisWorksThisDomainUsesAWildcardRecord.{}", domain);
@@ -85,19 +75,12 @@ fn get_wildcards(domain : &String, wc : &mut HashSet<IpAddr>) {
             }
         }
         Err(error) => {
+            // TODO should propagate error instead
             eprintln!("get_wildcards: {}", error);
         }
     }
-
-    println!("Discovered wildcard record for host {} with {} IP addresses", domain, wc.len());
 }
 
-// Takes a string representing the subdomain to try,
-// a string representing the path to the library,
-// a hash set containing wildcard IP addresses,
-// and a hash set for holding discovered subdomains
-// Attempts to resolve subdomain name by querying DNS
-// If successful add subdomain name to the discovered hash set
 fn try_subdomain(subdomain : String,
                  library: String,
                  wc : Arc<HashSet<IpAddr>>,
@@ -114,16 +97,12 @@ fn try_subdomain(subdomain : String,
 
         wg.add(1);
         thread::spawn(move || {
-            enumerate(subdomain, library, new_store, wg);
-            new_wg.done()
+            enumerate(subdomain, library, new_store, new_wg);
+            wg.done();
         });
     }
 }
 
-// Takes a string representing the name to query,
-// and a hash set containing wildcard addresses
-// If the name can be resolved and is not a wildcard, return true
-// Otherwise return false
 fn query(name : &String, wc : &HashSet<IpAddr>) -> bool {
     match lookup_host(name) {
         Ok(vec) => {

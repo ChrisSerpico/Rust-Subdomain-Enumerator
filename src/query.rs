@@ -1,5 +1,5 @@
-extern crate reqwest;
 extern crate chan;
+extern crate reqwest;
 
 use std::thread;
 use enumerator;
@@ -9,7 +9,7 @@ use self::chan::WaitGroup;
 
 #[derive(Deserialize, Debug)]
 struct Resp {
-    data: Vec<Subdomain>,
+    data:   Vec<Subdomain>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -20,11 +20,10 @@ struct Subdomain {
 
 #[derive(Debug, Clone)]
 pub struct Query {
-    domains: Vec<String>,
-    library: String,
-    limit: usize,
-    num_domains: usize,
-
+    domains:        Vec<String>,
+    library:        String,
+    limit:          usize,
+    num_domains:    usize,
 }
 
 impl Query {
@@ -55,59 +54,48 @@ impl Query {
        	self.limit = limit;
     }
 
-    pub fn get_num_domains(&self) -> usize{
-    	self.num_domains
-    }
-
     pub fn enumerate(&self) {
         let results = Results::new(self.num_domains);
         let wg = WaitGroup::new();
 
         if self.library.len() != 0 {
             for i in 0..self.num_domains {
-                let new_query = self.clone();
-                let new_query2 = self.clone();
-                let new_results = results.clone();
-                let new_results2 = results.clone();
+                // args for query_database
+                let db_arg1 = self.domains[domain_position].clone();
+                let db_arg2 = results.store[domain_position].clone();
+                let db_arg3 = self.limit.clone();
+
+                // args for library enum
+                let lib_arg1 =  self.domains[domain_position].clone();
+                let lib_arg2 = self.library.clone();
+                let lib_arg3 = results.store[domain_position].clone();
+                let lib_arg4 = wg.clone();
                 let new_wg = wg.clone();
-                let new_wg2 = wg.clone();
 
                 wg.add(1);
                 thread::spawn(move || {
-                    new_query.enum_with_db(i, new_results);
-                    new_query2.enum_with_lib(i, new_results2, new_wg);
-                    new_wg2.done();
+                    enumerator::query_database(db_arg1, db_arg2, db_arg3);
+                    library_enumerator::enumerate(lib_arg1, lib_arg2, lib_arg3, lib_arg4);
+                    new_wg.done();
                 });
             }
         }
         else {
             for i in 0..self.num_domains {
-                let new_query = self.clone();
-                let new_results = results.clone();
-                let new_wg = wg.clone();
+                let db_arg1 = self.domains[domain_position].clone();
+                let db_arg2 = results.store[domain_position].clone();
+                let db_arg3 = self.limit.clone();
 
                 wg.add(1);
                 thread::spawn(move || {
-                    new_query.enum_with_db(i, new_results);
-                    new_wg.done();
+                    enumerator::query_database(db_arg1, db_arg2, db_arg3);
+                    wg.done();
                 });
             }
         }
 
         wg.wait();
-    }
 
-    fn enum_with_db(&self, domain_position:usize, results: Results) {
-        let domain = self.domains[domain_position].clone();
-        let store = results.store[domain_position].clone();
-        let limit = self.limit.clone();
-        enumerator::query_database(domain, store, limit);
-    }
-
-    fn enum_with_lib(&self, domain_position : usize, results: Results, wg : WaitGroup) {
-        let domain =  self.domains[domain_position].clone();
-        let library = self.library.clone();
-        let store = results.store[domain_position].clone();
-        library_enumerator::enumerate(domain, library, store, wg);
+        // TODO do something with results
     }
 }

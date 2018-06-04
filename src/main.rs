@@ -22,7 +22,6 @@ fn main() {
                                .takes_value(true)
                                .help("Specifies the wordlist to use for dictionary enumeration."))
                           .get_matches();
-
     query.add_domains(matches.values_of_lossy("domains").unwrap());
 
     if matches.is_present("limit") {
