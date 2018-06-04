@@ -3,12 +3,14 @@ use std::sync::{Arc, Mutex};
 
 #[derive(Debug, Clone)]
 pub struct Results {
+	pub domain_list: Vec<String>,
     pub store: Vec<Arc<Mutex<HashSet<String>>>>,
 }
 
 impl Results {
     pub fn new(num_domains: usize) -> Self {
         Results{
+        	domain_list: Vec::new(),
         	store: vec![Arc::new(Mutex::new(HashSet::new())); num_domains],
         }
     }
@@ -18,10 +20,12 @@ impl Results {
     }
 
     pub fn print_subdomains(&self){
-    	println!("{:?}", self.store);
-
-
-
+    	for i in 0..self.domain_list.len() {
+    		println!("Domain: {}\n Subdomains:", self.domain_list[i]);
+    		for subdomain in self.store[i].lock().unwrap().iter(){
+    			println!("{}", subdomain);
+    		}
+    	}
     }
 
 }
