@@ -5,10 +5,8 @@ use clap::{Arg, App};
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use subdomain_enumerator::query;
-use subdomain_enumerator::results;
-use query::Query;
-use results::Results;
+use subdomain_enumerator::query::Query;
+use subdomain_enumerator::results::Results;
 
 
 fn main() {
@@ -31,42 +29,15 @@ fn main() {
                           .get_matches();
 
     query.add_domains(matches.values_of_lossy("domains").unwrap());
-    let results = Results::new(query.get_num_domains());
 
     if matches.is_present("limit") {
         let limit_arg = matches.value_of("limit").unwrap();
         query.set_limit(limit_arg.parse().unwrap());
     }  
-
-    let mut threads = Vec::new();
-
+    
     if matches.is_present("wordlist") {
         query.set_library(matches.value_of("wordlist").unwrap().to_string());
-
-        for i in 0..query.get_num_domains() { 
-            let new_query = query.clone();  
-            let new_results = results.clone();      
-            let handle: thread::JoinHandle<_> = thread::spawn(move || {
-                new_query.query_database(i, new_results);
-                // query.enumerate_library(i, results);
-            });
-
-            threads.push(handle);
-        }
-    }
-    else {
-        for i in 0..query.get_num_domains() {
-            let new_query = query.clone();  
-            let new_results = results.clone();  
-            let handle: thread::JoinHandle<_> = thread::spawn(move || { 
-                new_query.query_database(i, new_results);
-            });
-
-            threads.push(handle);
-        }  
     }
 
-    for child in threads{
-        child.join().unwrap();
-    }
+    query.enumerate();
 }
