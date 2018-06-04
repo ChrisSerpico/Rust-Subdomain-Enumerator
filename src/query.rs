@@ -1,15 +1,11 @@
 extern crate reqwest;
-extern crate dns_lookup;
+extern crate chan;
 
-use std::sync::Arc;
-use std::collections::HashSet;
-use std::fs::File;
-use std::io::{BufReader, BufRead};
-use std::mem;
 use std::thread;
 use enumerator;
 use library_enumerator;
 use results::Results;
+use self::chan::WaitGroup;
 
 #[derive(Deserialize, Debug)]
 struct Resp {
@@ -65,50 +61,53 @@ impl Query {
 
     pub fn enumerate(&self) {
         let results = Results::new(self.num_domains);
-        let mut threads = Vec::new();
+        let wg = WaitGroup::new();
 
-        if self.library.len() == 0 {
+        if self.library.len() != 0 {
             for i in 0..self.num_domains {
                 let new_query = self.clone();
                 let new_query2 = self.clone();
                 let new_results = results.clone();
                 let new_results2 = results.clone();
-                let handle: thread::JoinHandle<_> = thread::spawn(move || {
-                    new_query.enumWithDB(i, new_results);
-                    new_query2.enumWithLib(i, new_results2);
-                });
+                let new_wg = wg.clone();
+                let new_wg2 = wg.clone();
 
-                threads.push(handle);
+                wg.add(1);
+                thread::spawn(move || {
+                    new_query.enum_with_db(i, new_results);
+                    new_query2.enum_with_lib(i, new_results2, new_wg);
+                    new_wg2.done();
+                });
             }
         }
         else {
             for i in 0..self.num_domains {
                 let new_query = self.clone();
                 let new_results = results.clone();
-                let handle: thread::JoinHandle<_> = thread::spawn(move || {
-                    new_query.enumWithDB(i, new_results);
-                });
+                let new_wg = wg.clone();
 
-                threads.push(handle);
+                wg.add(1);
+                thread::spawn(move || {
+                    new_query.enum_with_db(i, new_results);
+                    new_wg.done();
+                });
             }
         }
 
-        for child in threads{
-            child.join().unwrap();
-        }
+        wg.wait();
     }
 
-    fn enumWithDB(&self, domain_position:usize, results: Results) {
+    fn enum_with_db(&self, domain_position:usize, results: Results) {
         let domain = self.domains[domain_position].clone();
         let store = results.store[domain_position].clone();
         let limit = self.limit.clone();
         enumerator::query_database(domain, store, limit);
     }
 
-    fn enumWithLib(&self, domain_position : usize, results: Results) {
+    fn enum_with_lib(&self, domain_position : usize, results: Results, wg : WaitGroup) {
         let domain =  self.domains[domain_position].clone();
         let library = self.library.clone();
         let store = results.store[domain_position].clone();
-        library_enumerator::enumerate(domain, library, store);
+        library_enumerator::enumerate(domain, library, store, wg);
     }
 }

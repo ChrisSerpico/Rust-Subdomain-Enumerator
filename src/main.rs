@@ -2,12 +2,7 @@ extern crate subdomain_enumerator;
 extern crate clap;
 
 use clap::{Arg, App};
-use std::collections::HashSet;
-use std::sync::{Arc, Mutex};
-use std::thread;
 use subdomain_enumerator::query::Query;
-use subdomain_enumerator::results::Results;
-
 
 fn main() {
     let mut query = Query::new();
@@ -34,7 +29,7 @@ fn main() {
         let limit_arg = matches.value_of("limit").unwrap();
         query.set_limit(limit_arg.parse().unwrap());
     }  
-    
+
     if matches.is_present("wordlist") {
         query.set_library(matches.value_of("wordlist").unwrap().to_string());
     }

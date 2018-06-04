@@ -13,6 +13,7 @@ ASSUMPTIONS:
 */
 
 extern crate dns_lookup;
+extern crate chan;
 
 use std::collections::HashSet;
 use std::fs::File;
@@ -22,6 +23,7 @@ use std::net::IpAddr;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use self::dns_lookup::lookup_host;
+use self::chan::WaitGroup;
 
 // Takes a string representing the domain to query,
 // a string representing the pathname to library,
@@ -30,7 +32,10 @@ use self::dns_lookup::lookup_host;
 // and passes the concatenated name to resolvers
 // If the name is resolvable, it is added as a valid subdomain
 // and recursively enumerated on
-pub fn enumerate(domain: String, library: String, store : Arc<Mutex<HashSet<String>>>)  {
+pub fn enumerate(domain: String,
+                 library: String,
+                 store : Arc<Mutex<HashSet<String>>>,
+                 wg : WaitGroup)  {
     let lib_buf;
     match File::open(&library) {
         Ok(lib) => {
@@ -54,9 +59,13 @@ pub fn enumerate(domain: String, library: String, store : Arc<Mutex<HashSet<Stri
         let new_lib = library.clone();
         let new_wc = wc.clone();
         let new_store = store.clone();
+        let new_wg = wg.clone();
+        let new_wg2 = wg.clone();
 
+        wg.add(1);
         thread::spawn(move || {
-            try_subdomain(subdomain, new_lib, new_wc, new_store);
+            try_subdomain(subdomain, new_lib, new_wc, new_store, new_wg);
+            new_wg2.done();
         });
     }
 }
@@ -92,16 +101,21 @@ fn get_wildcards(domain : &String, wc : &mut HashSet<IpAddr>) {
 fn try_subdomain(subdomain : String,
                  library: String,
                  wc : Arc<HashSet<IpAddr>>,
-                 store : Arc<Mutex<HashSet<String>>>) {
+                 store : Arc<Mutex<HashSet<String>>>,
+                 wg : WaitGroup) {
     if query(&subdomain, wc.as_ref()) {
         let mut found = store.lock().unwrap();
         found.insert(subdomain.clone());
         mem::drop(found);
 
         // Recurse on valid subdomain
-        let new = store.clone();
+        let new_store = store.clone();
+        let new_wg = wg.clone();
+
+        wg.add(1);
         thread::spawn(move || {
-            enumerate(subdomain, library, new);
+            enumerate(subdomain, library, new_store, wg);
+            new_wg.done()
         });
     }
 }
