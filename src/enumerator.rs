@@ -19,8 +19,9 @@ struct Subdomain {
 pub fn query_database(domain: String,
                       store: Arc<Mutex<HashSet<String>>>,
                       limit: usize) {
-
-    let url = format!("https://www.virustotal.com/ui/domains/{}/subdomains?limit={}", domain, limit);
+    let mut new_limit = limit;
+    if new_limit > 35 {new_limit = 35;}
+    let url = format!("https://www.virustotal.com/ui/domains/{}/subdomains?limit={}", domain, new_limit);
     let client = reqwest::Client::new();
     let virustotal: Resp = client.get(&url).send().unwrap().json().unwrap();
 
