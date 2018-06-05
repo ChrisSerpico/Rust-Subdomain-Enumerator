@@ -8,8 +8,8 @@ ASSUMPTIONS:
     2. The library file contains one word per line
 */
 
-extern crate chan;
 extern crate dns_lookup;
+extern crate threadpool;
 
 use std::collections::HashSet;
 use std::fs::File;
@@ -18,7 +18,7 @@ use std::mem;
 use std::net::IpAddr;
 use std::sync::{Arc, Mutex};
 use std::thread;
-use self::chan::WaitGroup;
+use self::threadpool::ThreadPool;
 use self::dns_lookup::lookup_host;
 
 
@@ -29,7 +29,8 @@ use self::dns_lookup::lookup_host;
 pub fn enumerate(domain: String,
                  library: String,
                  store : Arc<Mutex<HashSet<String>>>,
-                 wg : WaitGroup) {
+                 pool : ThreadPool) {
+    println!("enumerating on domain {}", domain.clone());
     let lib_buf;
     match File::open(&library) {
         Ok(lib) => {
@@ -54,15 +55,13 @@ pub fn enumerate(domain: String,
         let new_lib = library.clone();
         let new_wc = wc.clone();
         let new_store = store.clone();
-        let new_wg = wg.clone();
-        let new_wg2 = wg.clone();
+        let new_pool = pool.clone();
 
-        wg.add(1);
-        thread::spawn(move || {
-            try_subdomain(subdomain, new_lib, new_wc, new_store, new_wg);
-            new_wg2.done();
+        pool.execute(move || {
+            try_subdomain(subdomain, new_lib, new_wc, new_store, new_pool);
         });
     }
+    println!("enumerate on domain {} done\n", domain.clone());
 }
 
 fn get_wildcards(domain : &String, wc : &mut HashSet<IpAddr>) {
@@ -86,22 +85,24 @@ fn try_subdomain(subdomain : String,
                  library: String,
                  wc : Arc<HashSet<IpAddr>>,
                  store : Arc<Mutex<HashSet<String>>>,
-                 wg : WaitGroup) {
+                 pool : ThreadPool) {
+    println!("trying subdomain {}", subdomain.clone());
     if query(&subdomain, wc.as_ref()) {
         let mut found = store.lock().unwrap();
         found.insert(subdomain.clone());
         mem::drop(found);
 
         // Recurse on valid subdomain
+        let new_subdomain = subdomain.clone();
         let new_store = store.clone();
-        let new_wg = wg.clone();
+        let new_pool = pool.clone();
 
-        wg.add(1);
-        thread::spawn(move || {
-            enumerate(subdomain, library, new_store, new_wg);
-            wg.done();
+        println!("new task added: recurse on {}", subdomain.clone());
+        pool.execute(move || {
+            enumerate(new_subdomain, library, new_store, new_pool);
         });
     }
+    println!("trying subdomain {} done\n", subdomain);
 }
 
 fn query(name : &String, wc : &HashSet<IpAddr>) -> bool {

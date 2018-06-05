@@ -1,6 +1,5 @@
 //! A subdomain enumerator. Finds subdomains of a given subdomain by querying a public dataset (virustotal.com). 
 
-extern crate chan;
 extern crate reqwest;
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};

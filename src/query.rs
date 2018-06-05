@@ -1,11 +1,10 @@
-extern crate chan;
 extern crate reqwest;
+extern crate threadpool;
 
-use std::thread;
 use enumerator;
 use library_enumerator;
 use results::Results;
-use self::chan::WaitGroup;
+use self::threadpool::ThreadPool;
 
 #[derive(Deserialize, Debug)]
 struct Resp {
@@ -56,8 +55,7 @@ impl Query {
 
     pub fn enumerate(&self) -> Results{
         let results = Results::new(self.num_domains, self.domains.clone());
-
-        let wg = WaitGroup::new();
+        let mut pool = ThreadPool::new(4);
 
         if self.library.len() != 0 {
             for i in 0..self.num_domains {
@@ -70,14 +68,11 @@ impl Query {
                 let lib_arg1 =  self.domains[i].clone();
                 let lib_arg2 = self.library.clone();
                 let lib_arg3 = results.store[i].clone();
-                let lib_arg4 = wg.clone();
-                let new_wg = wg.clone();
+                let lib_arg4 = pool.clone();
 
-                wg.add(1);
-                thread::spawn(move || {
+                pool.execute(move || {
                     enumerator::query_database(db_arg1, db_arg2, db_arg3);
                     library_enumerator::enumerate(lib_arg1, lib_arg2, lib_arg3, lib_arg4);
-                    new_wg.done();
                 });
             }
         }
@@ -86,18 +81,14 @@ impl Query {
                 let db_arg1 = self.domains[i].clone();
                 let db_arg2 = results.store[i].clone();
                 let db_arg3 = self.limit.clone();
-                let new_wg = wg.clone();
 
-                wg.add(1);
-                thread::spawn(move || {
+                pool.execute(move || {
                     enumerator::query_database(db_arg1, db_arg2, db_arg3);
-                    new_wg.done();
-                });  
-
+                });
             }
         }
 
-        wg.wait();
+        pool.join();
 
         // TODO do something with results
         results
