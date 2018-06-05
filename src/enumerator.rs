@@ -15,7 +15,8 @@ struct Subdomain {
     id: String,
 }
 
-// takes a domain name as a string and returns a vector of subdomains as strings 
+/// Takes a domain, a store, and a limit. Queries virustotal.com with the domain, and returns as many subdomains as it finds or as many fit in the limit. 
+/// Please note that virustotal, the database we query, will not accept a limit greater than 35. Thus this function will always limit itself to 35 at most. 
 pub fn query_database(domain: String,
                       store: Arc<Mutex<HashSet<String>>>,
                       limit: usize) {
