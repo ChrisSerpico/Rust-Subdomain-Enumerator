@@ -6,17 +6,6 @@ use library_enumerator;
 use results::Results;
 use self::threadpool::ThreadPool;
 
-#[derive(Deserialize, Debug)]
-struct Resp {
-    data:   Vec<Subdomain>,
-}
-
-#[derive(Deserialize, Debug)]
-struct Subdomain {
-    id: String,
-}
-
-
 #[derive(Debug, Clone)]
 pub struct Query {
     domains:        Vec<String>,
@@ -55,7 +44,7 @@ impl Query {
 
     pub fn enumerate(&self) -> Results{
         let results = Results::new(self.num_domains, self.domains.clone());
-        let mut pool = ThreadPool::new(4);
+        let pool = ThreadPool::new(4);
 
         if self.library.len() != 0 {
             for i in 0..self.num_domains {
@@ -89,8 +78,6 @@ impl Query {
         }
 
         pool.join();
-
-        // TODO do something with results
         results
     }
 }

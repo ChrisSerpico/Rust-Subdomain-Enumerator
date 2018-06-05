@@ -17,10 +17,10 @@ use std::io::{BufReader, BufRead};
 use std::mem;
 use std::net::IpAddr;
 use std::sync::{Arc, Mutex};
-use std::thread;
+use std::thread::sleep;
+use std::time;
 use self::threadpool::ThreadPool;
 use self::dns_lookup::lookup_host;
-
 
 /// Takes a domain, a library, a store, and a wg (WaitGroup). For each word supplied in library, checkes to see whether the word specifies a subdomain of domain. If it does, the found subdomain is added to store. 
 ///
@@ -30,15 +30,12 @@ pub fn enumerate(domain: String,
                  library: String,
                  store : Arc<Mutex<HashSet<String>>>,
                  pool : ThreadPool) {
-    println!("enumerating on domain {}", domain.clone());
     let lib_buf;
     match File::open(&library) {
         Ok(lib) => {
             lib_buf = BufReader::new(lib);
         }
-        Err(error) => {
-            // TODO should propagate error instead
-            // eprintln!("enumerate: {}\nlibrary enumerator is aborting", error);
+        Err(_error) => {
             return
         }
     }
@@ -61,7 +58,6 @@ pub fn enumerate(domain: String,
             try_subdomain(subdomain, new_lib, new_wc, new_store, new_pool);
         });
     }
-    println!("enumerate on domain {} done\n", domain.clone());
 }
 
 fn get_wildcards(domain : &String, wc : &mut HashSet<IpAddr>) {
@@ -74,9 +70,8 @@ fn get_wildcards(domain : &String, wc : &mut HashSet<IpAddr>) {
                 wc.insert(*addr);
             }
         }
-        Err(error) => {
-            // TODO should propagate error instead
-            // eprintln!("get_wildcards: {}", error);
+        Err(_error) => {
+            return
         }
     }
 }
@@ -86,26 +81,22 @@ fn try_subdomain(subdomain : String,
                  wc : Arc<HashSet<IpAddr>>,
                  store : Arc<Mutex<HashSet<String>>>,
                  pool : ThreadPool) {
-    println!("trying subdomain {}", subdomain.clone());
     if query(&subdomain, wc.as_ref()) {
         let mut found = store.lock().unwrap();
         found.insert(subdomain.clone());
         mem::drop(found);
 
         // Recurse on valid subdomain
-        let new_subdomain = subdomain.clone();
         let new_store = store.clone();
         let new_pool = pool.clone();
-
-        println!("new task added: recurse on {}", subdomain.clone());
         pool.execute(move || {
-            enumerate(new_subdomain, library, new_store, new_pool);
+            enumerate(subdomain, library, new_store, new_pool);
         });
     }
-    println!("trying subdomain {} done\n", subdomain);
 }
 
 fn query(name : &String, wc : &HashSet<IpAddr>) -> bool {
+    sleep(time::Duration::from_millis(500));
     match lookup_host(name) {
         Ok(vec) => {
             let mut iter = vec.iter();
@@ -115,8 +106,7 @@ fn query(name : &String, wc : &HashSet<IpAddr>) -> bool {
                 }
             }
         }
-        Err(error) => {
-            // eprintln!("query: {}", error);
+        Err(_error) => {
             return false
         }
     }
