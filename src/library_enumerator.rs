@@ -24,7 +24,8 @@ use self::dns_lookup::lookup_host;
 
 /// Takes a domain, a library, a store, and a wg (WaitGroup). For each word supplied in library, checkes to see whether the word specifies a subdomain of domain. If it does, the found subdomain is added to store. 
 ///
-/// Note that the library is supplied as a string holding a path to an external file. 
+/// # Examples
+/// 
 pub fn enumerate(domain: String,
                  library: String,
                  store : Arc<Mutex<HashSet<String>>>,

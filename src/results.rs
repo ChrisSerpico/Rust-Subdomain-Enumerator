@@ -1,9 +1,6 @@
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 
-/// A struct holding results of a subdomain enumeration. 
-/// domain_list is the list of original domains that were supplied, eg "Facebook.com". 
-/// store holds the subdomains found for each supplied domain, eg "messenger.facebook.com". 
 #[derive(Debug, Clone)]
 pub struct Results {
 	pub domain_list: Vec<String>,
@@ -12,10 +9,14 @@ pub struct Results {
 
 impl Results {
     pub fn new(num_domains: usize, list : Vec<String>) -> Self {
-        Results{
+        let mut new_results = Results{
         	domain_list: list,
-        	store: vec![Arc::new(Mutex::new(HashSet::new())); num_domains],
+        	store: Vec::new(),
+        };
+        for i in 0..num_domains{
+        	new_results.store.push(Arc::new(Mutex::new(HashSet::new())));
         }
+        new_results
     }
 
     pub fn insert_subdomain(&self, domain_position: usize, subdomain: String){
