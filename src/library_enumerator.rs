@@ -22,10 +22,8 @@ use std::time;
 use self::threadpool::ThreadPool;
 use self::dns_lookup::lookup_host;
 
-/// Takes a domain, a library, a store, and a wg (WaitGroup). For each word supplied in library, checkes to see whether the word specifies a subdomain of domain. If it does, the found subdomain is added to store. 
-///
-/// # Examples
-/// 
+/// Takes a domain, a library, a store, and a thread pool. For each word supplied in library, checkes to see whether the word specifies a subdomain of domain. If it does, the found subdomain is added to store. 
+/// The thread pool is used to concurrently check possible subdomains. This means that this function should be somewhat efficient even with large libraries. 
 pub fn enumerate(domain: String,
                  library: String,
                  store : Arc<Mutex<HashSet<String>>>,
