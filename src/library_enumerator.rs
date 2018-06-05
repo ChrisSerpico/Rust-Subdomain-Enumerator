@@ -1,4 +1,6 @@
-/*!
+//! Contains code for a subdomain enumerator that finds subdomain by trying subdomains generated with a library of common words.
+
+/*
 Vickie Li, Alex Lu Wang, Chris Serpico
 Contains code for a subdomain enumerator that finds subdomains
 by trying subdomains generated with a library of common words.
@@ -24,6 +26,12 @@ use self::dns_lookup::lookup_host;
 
 /// Takes a domain, a library, a store, and a thread pool. For each word supplied in library, checkes to see whether the word specifies a subdomain of domain. If it does, the found subdomain is added to store. 
 /// The thread pool is used to concurrently check possible subdomains. This means that this function should be somewhat efficient even with large libraries. 
+/// 
+/// # Arguments
+/// * 'domain' - A String with the domain you want to enumerate. 
+/// * 'library' - A String with a filepath to the word list you want to use for library enumeration.
+/// * 'store' - An Arc<Mutex<HashSet<String>>> that you want to read the subdomains into. 
+/// * 'pool' - A ThreadPool holding threads you want to use for concurrent enumeration. 
 pub fn enumerate(domain: String,
                  library: String,
                  store : Arc<Mutex<HashSet<String>>>,

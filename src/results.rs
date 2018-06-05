@@ -4,6 +4,10 @@ use std::sync::{Arc, Mutex};
 /// A struct holding results of a subdomain enumeration. 
 /// domain_list is the list of original domains that were supplied, eg "Facebook.com". 
 /// store holds the subdomains found for each supplied domain, eg "messenger.facebook.com". 
+/// 
+/// # Fields
+/// * 'domains' - A Vector of Strings holding the domains that were enumerated 
+/// * 'store' - A Vec<Arc<Mutex<HashSet<String>>>> where each element is a list of subdomains corresponding to a domain in domains. 
 #[derive(Debug, Clone)]
 pub struct Results {
 	pub domains:    Vec<String>,

@@ -7,6 +7,12 @@ use results::Results;
 use self::threadpool::ThreadPool;
 
 /// Represents a user supplied query, where domains is the list of domains that will have their subdomains enumerated and library is a wordlist supplied for library enumeration.
+/// 
+/// # Fields
+/// * 'domains' - A Vector of Strings holding the domains to be enumerated 
+/// * 'library' - A String with the filepath of a wordlist for library enumeration. Can be empty if there is no wordlist. 
+/// * 'limit' - A usize holding the maximum number of subdomains to be enumerated for each domain. 
+/// * 'num_domains' - The number of domains to be enumerated. Updated automatically by add_domain() and add_domains(). 
 #[derive(Debug, Clone)]
 pub struct Query {
     domains:        Vec<String>,

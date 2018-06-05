@@ -17,6 +17,11 @@ struct Subdomain {
 
 /// Takes a domain, a store, and a limit. Queries virustotal.com with the domain, and returns as many subdomains as it finds or as many fit in the limit. 
 /// Please note that virustotal, the database we query, will not accept a limit greater than 35. Thus this function will always limit itself to 35 at most. 
+/// 
+/// # Arguments
+/// * 'domain' - A String with the domain you want to enumerate. 
+/// * 'store' - An Arc<Mutex<HashSet<String>>> that you want to read the subdomains into. 
+/// * 'pool' - A ThreadPool holding threads you want to use for concurrent enumeration. 
 pub fn query_database(domain: String,
                       store: Arc<Mutex<HashSet<String>>>,
                       limit: usize) {
