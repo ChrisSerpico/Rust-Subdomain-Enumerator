@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["query_database","Takes a domain, a store, and a limit. Queries virustotal.com with the domain, and returns as many subdomains as it finds or as many fit in the limit.  Please note that virustotal, the database we query, will not accept a limit greater than 35. Thus this function will always limit itself to 35 at most. "]]});

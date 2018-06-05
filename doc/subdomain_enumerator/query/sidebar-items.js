@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Query","Represents a user supplied query, where domains is the list of domains that will have their subdomains enumerated and library is a wordlist supplied for library enumeration."]]});
