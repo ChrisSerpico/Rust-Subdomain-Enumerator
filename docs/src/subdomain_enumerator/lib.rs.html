@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="generator" content="rustdoc">
-    <meta name="description" content="Source to the Rust file `src\lib.rs`.">
+    <meta name="description" content="Source to the Rust file `src/lib.rs`.">
     <meta name="keywords" content="rust, rustlang, rust-lang">
 
     <title>lib.rs.html -- source</title>
@@ -54,14 +54,62 @@
         </form>
     </nav>
 
-    <section id='main' class="content"><pre class="line-numbers"><span id="1">1</span>
-<span id="2">2</span>
-<span id="3">3</span>
-<span id="4">4</span>
-<span id="5">5</span>
-<span id="6">6</span>
-<span id="7">7</span>
+    <section id='main' class="content"><pre class="line-numbers"><span id="1"> 1</span>
+<span id="2"> 2</span>
+<span id="3"> 3</span>
+<span id="4"> 4</span>
+<span id="5"> 5</span>
+<span id="6"> 6</span>
+<span id="7"> 7</span>
+<span id="8"> 8</span>
+<span id="9"> 9</span>
+<span id="10">10</span>
+<span id="11">11</span>
+<span id="12">12</span>
+<span id="13">13</span>
+<span id="14">14</span>
+<span id="15">15</span>
+<span id="16">16</span>
+<span id="17">17</span>
+<span id="18">18</span>
+<span id="19">19</span>
+<span id="20">20</span>
+<span id="21">21</span>
+<span id="22">22</span>
+<span id="23">23</span>
+<span id="24">24</span>
+<span id="25">25</span>
+<span id="26">26</span>
+<span id="27">27</span>
+<span id="28">28</span>
+<span id="29">29</span>
+<span id="30">30</span>
+<span id="31">31</span>
 </pre><pre class="rust ">
+<span class="doccomment">//! A concurrent subdomain enumerator that utilizes both passive and active subdomain enumeration techniques. </span>
+<span class="doccomment">//! It will help penetration testers and bug bounty hunters gather subdomain information for the domain that they are targeting. </span>
+<span class="doccomment">//! This tool is capable of performing subdomain enumeration in two ways: </span>
+<span class="doccomment">//! 1. It queres VirusTotal for subdomain information.</span>
+<span class="doccomment">//! 2. It also performs a dictionary based enumeration based on a user-defined word list. </span>
+<span class="doccomment">//! # Examples</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! Performing subdomain enumeration on a query with no library, and therefore no library enumeration. </span>
+<span class="doccomment">//! ```</span>
+<span class="doccomment">//! let mut q = Query::new(); </span>
+<span class="doccomment">//! q.add_domains(vec![&quot;facebook.com&quot;, &quot;google.com&quot;]; </span>
+<span class="doccomment">//! let subdomains = q.enumerate(); </span>
+<span class="doccomment">//! subdomains.print_subdomains(); </span>
+<span class="doccomment">//! ```</span>
+<span class="doccomment">//! </span>
+<span class="doccomment">//! Performing subdomain enumeration on a query with a library added. This means that library enumeration will be performed along with normal database querying.</span>
+<span class="doccomment">//! Note that a library is passed as a string holding a path to an external file. </span>
+<span class="doccomment">//! ```</span>
+<span class="doccomment">//! let mut q = Query::new();</span>
+<span class="doccomment">//! q.add_domains(vec![&quot;facebook.com&quot;, &quot;google.com&quot;]; </span>
+<span class="doccomment">//! q.set_library(&quot;path_to_library.txt&quot;); </span>
+<span class="doccomment">//! let subdomains = q.enumerate(); </span>
+<span class="doccomment">//! subdomains.print_subdomains(); </span>
+<span class="doccomment">//! </span>
 <span class="attribute">#[<span class="ident">macro_use</span>]</span>
 <span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">serde_derive</span>;
 
