@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Results","A struct holding results of a subdomain enumeration.  domain_list is the list of original domains that were supplied, eg \"Facebook.com\".  store holds the subdomains found for each supplied domain, eg \"messenger.facebook.com\". "]]});

@@ -1,3 +1,4 @@
+//! Builds a query that for subdomain enumeration.
 extern crate reqwest;
 extern crate threadpool;
 
@@ -7,12 +8,7 @@ use results::Results;
 use self::threadpool::ThreadPool;
 
 /// Represents a user supplied query, where domains is the list of domains that will have their subdomains enumerated and library is a wordlist supplied for library enumeration.
-/// 
-/// # Fields
-/// * 'domains' - A Vector of Strings holding the domains to be enumerated 
-/// * 'library' - A String with the filepath of a wordlist for library enumeration. Can be empty if there is no wordlist. 
-/// * 'limit' - A usize holding the maximum number of subdomains to be enumerated for each domain. 
-/// * 'num_domains' - The number of domains to be enumerated. Updated automatically by add_domain() and add_domains(). 
+
 #[derive(Debug, Clone)]
 pub struct Query {
     domains:        Vec<String>,
@@ -22,6 +18,8 @@ pub struct Query {
 }
 
 impl Query {
+
+    /// Initializes a new Query instance.
     pub fn new() -> Self {
         Query {
             domains: Vec::new(),
@@ -43,10 +41,12 @@ impl Query {
         self.num_domains = self.domains.len();
     }
 
+    /// Sets the path of library file for dictionary based enumeration. 
     pub fn set_library(&mut self, library: String){
         self.library = library;
     }
 
+    /// Sets the limit of number of subdomains to be retrieved from the public dataset.
     pub fn set_limit(&mut self, limit: usize){
         self.limit = limit;
     }
@@ -57,22 +57,22 @@ impl Query {
     /// # Examples
     ///
     /// Performing subdomain enumeration on a query with no library, and therefore no library enumeration. 
-    /// '''
+    /// ```
     /// let mut q = Query::new(); 
     /// q.add_domains(vec!["facebook.com", "google.com"]; 
     /// let subdomains = q.enumerate(); 
     /// subdomains.print_subdomains(); 
-    /// ''' 
+    /// ```
     /// 
     /// Performing subdomain enumeration on a query with a library added. This means that library enumeration will be performed along with normal database querying.
     /// Note that a library is passed as a string holding a path to an external file. 
-    /// '''
+    /// ```
     /// let mut q = Query::new();
     /// q.add_domains(vec!["facebook.com", "google.com"]; 
     /// q.set_library("path_to_library.txt"); 
     /// let subdomains = q.enumerate(); 
     /// subdomains.print_subdomains(); 
-    /// ''' 
+    /// ```
     pub fn enumerate(&self) -> Results{
         let results = Results::new(self.num_domains, self.domains.clone());
         let pool = ThreadPool::new(4);

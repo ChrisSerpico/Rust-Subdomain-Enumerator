@@ -1,3 +1,4 @@
+//! Builds the results for subdomain enumeration.
 use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 
@@ -15,6 +16,8 @@ pub struct Results {
 }
 
 impl Results {
+
+    /// Initiates a new Results instance.
     pub fn new(num_domains: usize, domains_list : Vec<String>) -> Self {
         let mut new_results = Results {
             domains: domains_list,
@@ -28,6 +31,7 @@ impl Results {
         new_results
     }
 
+    /// Print the associated subdomains found for each domain.
     pub fn print_subdomains(&self) {
     	for i in 0..self.domains.len() {
     		println!("Domain: {}", self.domains[i]);
